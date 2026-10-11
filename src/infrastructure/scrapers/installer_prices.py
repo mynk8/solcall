@@ -136,10 +136,15 @@ _MIN_PRICE = 10_000
 _MAX_PRICE = 20_00_000
 
 
-def _parse_amount(raw_amount: str, lakh_suffix: Optional[str]) -> int:
-    """Convert a scraped amount string to an integer in rupees."""
-    cleaned = raw_amount.replace(",", "")
-    value = float(cleaned)
+def _parse_amount(raw_amount: str, lakh_suffix: Optional[str]) -> Optional[int]:
+    """Convert a scraped amount string to an integer in rupees, or None if invalid."""
+    cleaned = raw_amount.replace(",", "").strip()
+    if not cleaned:
+        return None
+    try:
+        value = float(cleaned)
+    except ValueError:
+        return None
     if lakh_suffix:
         value *= 100_000
     return int(round(value))
@@ -174,7 +179,7 @@ def _parse(raw: bytes, url: str) -> InstallerPriceScrapeResult:
     for m in _SIZE_PRICE_RE.finditer(text):
         size_kw = int(m.group(1))
         price_inr = _parse_amount(m.group(2), m.group(3))
-        if _MIN_PRICE <= price_inr <= _MAX_PRICE and (size_kw, price_inr) not in seen:
+        if size_kw >= 1 and price_inr is not None and _MIN_PRICE <= price_inr <= _MAX_PRICE and (size_kw, price_inr) not in seen:
             seen.add((size_kw, price_inr))
             candidates.append(PriceCandidate(
                 size_kw=size_kw,
@@ -188,7 +193,7 @@ def _parse(raw: bytes, url: str) -> InstallerPriceScrapeResult:
     for m in _PRICE_SIZE_RE.finditer(text):
         price_inr = _parse_amount(m.group(1), m.group(2))
         size_kw = int(m.group(3))
-        if _MIN_PRICE <= price_inr <= _MAX_PRICE and (size_kw, price_inr) not in seen:
+        if size_kw >= 1 and price_inr is not None and _MIN_PRICE <= price_inr <= _MAX_PRICE and (size_kw, price_inr) not in seen:
             seen.add((size_kw, price_inr))
             candidates.append(PriceCandidate(
                 size_kw=size_kw,

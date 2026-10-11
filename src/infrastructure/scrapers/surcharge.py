@@ -27,7 +27,7 @@ from src.infrastructure.http import client as http
 
 logger = logging.getLogger(__name__)
 
-_URL = "https://www.bsesdelhi.com/w/brpl/fuel-power-purchase-adjustment-charges"
+_URL = "https://www.bsesdelhi.com/web/brpl/fuel-power-purchase-adjustment-charges"
 
 
 class LiveSurchargeHistoryScraper(Port):

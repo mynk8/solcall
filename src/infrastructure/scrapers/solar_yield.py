@@ -111,43 +111,28 @@ def _deep_find(obj: object, key: str) -> object | None:
 def _extract_point(
     name: str, lat: float, lon: float, data: dict,
 ) -> SolarPoint:
-    """Pull PVOUT_csi from an arbitrary JSON structure."""
-    pvout = _deep_find(data, "PVOUT_csi")
-    if pvout is None:
+    """Pull PVOUT_csi from Global Solar Atlas response structure."""
+    annual_val = _find_annual(data)
+    monthly_vals = _find_monthly(data)
+
+    if annual_val is None and monthly_vals is not None:
+        annual_val = sum(monthly_vals)
+    elif annual_val is None:
         raise ParseError(
-            f"Key 'PVOUT_csi' not found in Global Solar Atlas response for {name}"
+            f"Key 'PVOUT_csi' (annual) not found in Global Solar Atlas response for {name}"
         )
 
-    # pvout can be a single number (annual) or a list of 12 (monthly).
-    # The API typically returns both at different nesting levels.
-    if isinstance(pvout, (int, float)):
-        annual = float(pvout)
-        # Try to find monthly values
-        monthly_raw = _deep_find(data, "PVOUT_csi")
-        # If the same key appears multiple times, search more broadly
-        monthly = _find_monthly(data)
-        if monthly is None:
-            raise ParseError(
-                f"Monthly PVOUT_csi values not found for {name}"
-            )
-    elif isinstance(pvout, list) and len(pvout) == 12:
-        monthly = tuple(float(v) for v in pvout)
-        annual = sum(monthly)
-        # Try to find a separate annual value
-        annual_val = _find_annual(data)
-        if annual_val is not None:
-            annual = annual_val
-    else:
+    if monthly_vals is None:
         raise ParseError(
-            f"Unexpected PVOUT_csi format for {name}: {type(pvout)}"
+            f"Monthly PVOUT_csi values not found for {name}"
         )
 
     return SolarPoint(
         name=name,
         lat=lat,
         lon=lon,
-        annual_kwh_per_kwp=round(annual, 2),
-        monthly_kwh_per_kwp=monthly,
+        annual_kwh_per_kwp=round(annual_val, 2),
+        monthly_kwh_per_kwp=monthly_vals,
     )
 
 
