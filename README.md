@@ -50,8 +50,8 @@ All monetary amounts in these formulas are in Indian rupees.
 
 $$
 \begin{aligned}
-E(u) &= \sum \text{slab\_rate} \times u_{\text{slab}} \\
-F(L) &= \text{band\_rate}(L) \times L \\
+E(u) &= \sum \text{slab rate} \times u_{\text{slab}} \\
+F(L) &= \text{band rate}(L) \times L \\
 m &= \text{mean}\left(\frac{\text{bill}_{\text{calib}}}{E(u) + F(L)}\right) \approx 1.3696 \\
 \text{Bill}(u, L) &= m \times (E(u) + F(L))
 \end{aligned}
@@ -84,7 +84,7 @@ $$
 \begin{aligned}
 \text{central}(k) &= 30000 \min(k, 2) + 18000 \min(\max(k-2, 0), 1) \le 78{,}000 \\
 \text{delhi}(k, P) &= \max(0, \min(26000 \min(k, 3), 78000, P - \text{central}(k))) \\
-\text{net\_cost} &= 0 \text{ (free route)} \quad \text{or} \quad \max(0, P - \text{central} - \text{delhi})
+\text{net cost} &= 0 \text{ (free route)} \quad \text{or} \quad \max(0, P - \text{central} - \text{delhi})
 \end{aligned}
 $$
 
