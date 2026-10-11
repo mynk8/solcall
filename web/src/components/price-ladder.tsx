@@ -10,8 +10,9 @@ const ZONES = { below: "#dee0e2", fair: "#8fcfb0", high: "#f9b98f", above: "#ee9
 /**
  * One size's prices as a gauge: below any price seen, fair (lowest to typical), high side
  * (typical to highest), above market. The govt benchmark and the quote are marked on it.
+ * `compact` is for small tiles: only the lowest and highest prices are labelled.
  */
-export function PriceLadder({ ladder, quote, className }: { ladder: Ladder; quote?: number | null; className?: string }) {
+export function PriceLadder({ ladder, quote, className, compact }: { ladder: Ladder; quote?: number | null; className?: string; compact?: boolean }) {
   const low = ladder.market_low?.total, high = ladder.market_high?.total
   const median = ladder.market_median?.total, bench = ladder.benchmark?.total
   const market = low != null && high != null && median != null
@@ -39,6 +40,7 @@ export function PriceLadder({ ladder, quote, className }: { ladder: Ladder; quot
     market && { v: median, text: `typical ${short(median)}`, line: 1 },
     market && high !== low && { v: high, text: `highest ${short(high)}`, line: 0 },
   ].filter((t): t is { v: number; text: string; line: number } => !!t)
+    .filter((t) => !compact || !market || /^(lowest|highest)/.test(t.text))
 
   return (
     <div className={cn("flex select-none flex-col", className)} role="img"
@@ -54,7 +56,7 @@ export function PriceLadder({ ladder, quote, className }: { ladder: Ladder; quot
           {zones.map((z) => (
             <div key={z.key} className="flex items-center justify-center overflow-hidden text-xs font-semibold whitespace-nowrap text-[#0b0c0c]/80"
               style={{ width: `${at(z.to) - at(z.from)}%`, background: ZONES[z.key as keyof typeof ZONES] }}>
-              <span className="px-1">{at(z.to) - at(z.from) > 11 ? z.label : ""}</span>
+              <span className="px-1">{at(z.to) - at(z.from) > (compact ? 30 : 11) ? z.label : ""}</span>
             </div>
           ))}
         </div>
@@ -64,7 +66,7 @@ export function PriceLadder({ ladder, quote, className }: { ladder: Ladder; quot
           <i className="absolute -inset-y-1.5 w-1 -translate-x-1/2 rounded bg-[#0b0c0c] ring-2 ring-white" style={{ left: `${at(quote)}%` }} />
         )}
       </div>
-      <div className="relative h-9 text-[13px] text-[var(--govuk-secondary-text)] tabular-nums">
+      <div className={cn("relative text-[13px] text-[var(--govuk-secondary-text)] tabular-nums", compact ? "h-5" : "h-9")}>
         {ticks.map((t) => (
           <span key={t.text} className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `clamp(${t.text.length * 0.23}rem, ${at(t.v)}%, calc(100% - ${t.text.length * 0.23}rem))`, top: t.line ? "1.1rem" : "0.1rem" }}>{t.text}</span>
         ))}

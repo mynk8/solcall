@@ -55,7 +55,7 @@ export function AlertsPage() {
             { label: "Loan costs", value: today.rates.scheme_loan_pct, display: `${today.rates.scheme_loan_pct.toFixed(2)}%`, color: "#1d70b8" },
             { label: "Deposit earns", value: today.rates.deposit_high_pct, from: today.rates.deposit_low_pct, display: `${today.rates.deposit_low_pct.toFixed(1)}–${today.rates.deposit_high_pct.toFixed(2)}%`, color: "#00703c" },
           ]} />} />
-        <Stat k={`Price for ${size}`} v={lakh(ladder?.typical_price)} tag={ladder && <PriceLadder ladder={ladder} className="mt-1" />} />
+        <Stat k={`Typical price for ${size}`} v={lakh(ladder?.typical_price)} tag={ladder && <PriceLadder compact ladder={ladder} className="mt-1" />} />
       </div>
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         <div className="flex flex-col gap-4 rounded-[2px] border bg-white p-5">
@@ -74,7 +74,7 @@ export function AlertsPage() {
             ))}
           </fieldset>
           <Field label="WhatsApp number"><Input type="tel" inputMode="tel" placeholder="+91 ·····" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
-          <div className="flex items-center gap-2"><Button onClick={subscribe}>Subscribe</Button><span className="text-sm text-muted-foreground">or email (later)</span></div>
+          <Button className="self-start" onClick={subscribe}>Subscribe</Button>
         </div>
 
         <div className="flex flex-col gap-4 rounded-[2px] border bg-white p-5">
@@ -84,7 +84,7 @@ export function AlertsPage() {
               <span>{s.discom} · {s.size} · {s.band}</span>
               <button className="govuk-link" onClick={() => { const n = subs.filter((_, j) => j !== i); setSubs(n); save(n) }}>Remove</button>
             </div>
-          )) : <p className="text-sm text-muted-foreground">None yet. Subscribe on the left.</p>}
+          )) : <p className="text-sm text-muted-foreground">None yet.</p>}
 
           <h2 className="pt-2 text-lg font-bold">Message preview</h2>
           <div className="flex max-w-80 flex-col gap-1.5 rounded-xl rounded-bl-sm bg-emerald-600/15 p-3 text-sm">
@@ -92,7 +92,6 @@ export function AlertsPage() {
             <span>A higher surcharge raises your bill, so solar saves you more. Tap to see your new numbers.</span>
             <button className="self-start govuk-link" onClick={() => navigate("changelog")}>See what changed →</button>
           </div>
-          <Button variant="outline" size="sm" className="self-start" onClick={() => toast("Test alert sent (stub)")}>Send a test alert (demo)</Button>
         </div>
       </div>
     </div>

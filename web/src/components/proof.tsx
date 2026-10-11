@@ -217,7 +217,7 @@ export function DotStrip({ points, format = (v) => String(Math.round(v)), classN
       <div className="relative h-4">
         <div className="absolute inset-x-0 top-1/2 h-px bg-[var(--govuk-mid-grey)]" />
         {points.map((p) => (
-          <i key={p.name} title={`${p.name}: ${format(p.value)}`} className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-[#f47738]" style={{ left: at(p.value) }} />
+          <i key={p.name} title={`${p.name}: ${format(p.value)}`} className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-[#1d70b8]" style={{ left: at(p.value) }} />
         ))}
       </div>
       <div className="flex justify-between text-xs text-[var(--govuk-secondary-text)] tabular-nums">

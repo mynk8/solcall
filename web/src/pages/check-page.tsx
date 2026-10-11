@@ -75,7 +75,6 @@ export function CheckPage() {
             <ToggleGroup type="single" size="sm" variant="outline" value={String(h.size)} onValueChange={(v) => v && update({ size: +v })} className="flex-wrap justify-start">
               {SIZES.map((k) => <ToggleGroupItem key={k} value={String(k)} disabled={k > h.load}>{k} kW</ToggleGroupItem>)}
             </ToggleGroup>
-            <span className="text-sm text-muted-foreground">Can't be larger than your sanctioned load.</span>
           </div>
           <div className="flex flex-col gap-1.5">
             <span className="text-sm text-muted-foreground">DISCOM</span>
@@ -84,11 +83,6 @@ export function CheckPage() {
               <SelectContent>{["BRPL", "BYPL", "TPDDL"].map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          {!roof && (
-            <p className="govuk-inset border-[var(--govuk-blue)] bg-[#bbd4ea]/30">
-              No roof picked. <button className="underline" onClick={() => navigate("map")}>Find my roof</button> to get a size suggestion.
-            </p>
-          )}
         </div>
 
         {/* result */}

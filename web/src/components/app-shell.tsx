@@ -127,9 +127,7 @@ function Stepper() {
           </button>
         </div>
       ))}
-      <span className="ml-auto hidden pl-4 text-sm whitespace-nowrap text-[var(--govuk-secondary-text)] sm:inline">
-        {roof ? `Roof ${roof.id} · ${roof.area}` : "No roof picked (optional)"}
-      </span>
+      {roof && <span className="ml-auto hidden pl-4 text-sm whitespace-nowrap text-[var(--govuk-secondary-text)] sm:inline">{roof.area} · fits {roof.fitKw} kW</span>}
     </nav>
   )
 }
