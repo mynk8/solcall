@@ -237,5 +237,14 @@
     "as_of": "2026-10-11",
     "verify": false,
     "note": "ASSUMPTION"
+  },
+  "emissions.grid_factor": {
+    "value": 0.727,
+    "unit": "kgCO2/kWh",
+    "source": "CEA",
+    "tier": "T1",
+    "as_of": "2026-10-11",
+    "verify": true,
+    "note": "CEA CO2 Baseline Database v20 (FY 2023-24), India grid weighted average 0.727 tCO2/MWh. VERIFY against the current release"
   }
 }

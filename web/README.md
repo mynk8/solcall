@@ -47,6 +47,7 @@ Every gap renders as a dashed "placeholder · …" box (`<Missing>` in code) or 
 | 2 | Address / locality search | Ctrl K, map search | Geocoder; today it matches sample roof names only |
 | 3 | Roof → division mapping | Roof sheet "Your division" | Division for each roof (only 2 sample roofs have one) |
 | 4 | Division boundaries | Map and home-page applications layer, DISCOM sheet | Real division shapes or centroids. Dots sit at hand-placed approximate centres of the locality each division code stands for (`DIVISION_POINTS` in `src/lib/roofs.ts`); the code-to-name reading is ours and `S2CHP` has no point yet |
+| 4a | Grid emission factor | Home page case strip, Check my bill clean-power strip | Rule `emissions.grid_factor` in `data/delhi_rules.json` is 0.727 kg CO₂ per unit (CEA CO2 Baseline Database v20), marked `verify`. Confirm against the current CEA release |
 | 5 | Change since last snapshot | DISCOM sheet, Records | Keep the previous applications snapshot ("+n this week") |
 | 6 | BYPL / TPDDL surcharge | Reference KPI + Surcharge tab, Changelog (when scoped) | Scrapers for BYPL and TPDDL surcharge pages |
 | 7 | Annotated sample bill | Check → "Where do I find these?" | Image of a Delhi bill with units and sanctioned load circled |

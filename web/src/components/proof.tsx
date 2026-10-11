@@ -251,8 +251,8 @@ export function Milestones({ steps, className }: { steps: { label: string; value
         <div key={s.label} className="flex min-w-0 flex-1 items-center gap-1">
           {i > 0 && <span aria-hidden className="text-[var(--govuk-secondary-text)]">→</span>}
           <div className="flex min-w-0 flex-1 flex-col bg-[var(--govuk-light-grey)] px-2.5 py-1.5">
-            <span className="text-xs text-[var(--govuk-secondary-text)]">{s.label}</span>
-            <b className={cn("text-[15px] leading-tight whitespace-nowrap tabular-nums", s.tone === "good" && "text-[var(--govuk-green)]", s.tone === "bad" && "text-[var(--govuk-red)]")}>{s.value.replace(" lakh", "L")}</b>
+            <span className="text-[13px] text-[var(--govuk-secondary-text)]">{s.label}</span>
+            <b className={cn("text-lg leading-tight whitespace-nowrap tabular-nums", s.tone === "good" && "text-[var(--govuk-green)]", s.tone === "bad" && "text-[var(--govuk-red)]")}>{s.value.replace(" lakh", "L")}</b>
           </div>
         </div>
       ))}

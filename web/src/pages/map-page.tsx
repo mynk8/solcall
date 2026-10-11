@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { ChevronsUpDown, Eye, EyeOff, Layers, X } from "lucide-react"
+import { ChevronsUpDown, Eye, EyeOff, Layers, RotateCcw, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { VerdictPill } from "@/components/bits"
@@ -55,7 +55,10 @@ export function MapPage() {
         ))}
       </MapView>
 
-      <LayerPanel showRoofs={showRoofs} setShowRoofs={setShowRoofs} showApps={showApps} setShowApps={setShowApps} mode={mode} setMode={setMode} />
+      <LayerPanel showRoofs={showRoofs} setShowRoofs={setShowRoofs} showApps={showApps} setShowApps={setShowApps} mode={mode} setMode={setMode}
+        onReset={scope !== "Everywhere" || !showRoofs || !showApps || mode !== "division" || sheet
+          ? () => { setScope("Everywhere"); setShowRoofs(true); setShowApps(true); setMode("division"); setSheet(null); update({ roof: null }) }
+          : undefined} />
 
       <RoofSheet roof={sheet?.kind === "roof" ? roof : null} onClose={() => setSheet(null)}
         onCheck={(r) => {
@@ -81,9 +84,10 @@ const FIT_COLOR: Record<RoofCandidate["shade"], string> = { none: "#00703c", lig
  * Map controls in one panel (after GridStatus): area, then each layer as a section with a
  * visibility toggle, its colour scale and its display options.
  */
-function LayerPanel({ showRoofs, setShowRoofs, showApps, setShowApps, mode, setMode }: {
+function LayerPanel({ showRoofs, setShowRoofs, showApps, setShowApps, mode, setMode, onReset }: {
   showRoofs: boolean; setShowRoofs: (v: boolean) => void; showApps: boolean; setShowApps: (v: boolean) => void
   mode: "division" | "discom"; setMode: (m: "division" | "discom") => void
+  onReset?: () => void // set only when something differs from the default view
 }) {
   const { scope, setScope } = useApp()
   const mobile = useIsMobile()
@@ -93,7 +97,7 @@ function LayerPanel({ showRoofs, setShowRoofs, showApps, setShowApps, mode, setM
     <div className="absolute top-3 left-3 z-10 flex max-w-[calc(100%-24px)] items-start gap-2">
       {open && (
         <div className="flex w-[280px] min-w-0 flex-col divide-y rounded-lg border bg-white/95 shadow-lg backdrop-blur-sm">
-          <div className="px-3 py-2">
+          <div className="flex items-center gap-2 px-3 py-2">
             <Select value={scope} onValueChange={(v) => setScope(v as typeof scope)}>
               <SelectTrigger className="h-9 w-full justify-start gap-2 border-0 px-0 text-base shadow-none [&>svg:last-child]:hidden">
                 <SelectValue /><ChevronsUpDown className="size-4 text-[var(--govuk-secondary-text)]" />
@@ -103,6 +107,11 @@ function LayerPanel({ showRoofs, setShowRoofs, showApps, setShowApps, mode, setM
                 {(Object.keys(DISCOM_CENTRES) as Discom[]).map((d) => <SelectItem key={d} value={d}>{d} · {DISCOM_CENTRES[d].name.split(" (")[0]}</SelectItem>)}
               </SelectContent>
             </Select>
+            {onReset && (
+              <button onClick={onReset} className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold hover:bg-[var(--govuk-light-grey)]">
+                <RotateCcw className="size-3.5" />Reset
+              </button>
+            )}
           </div>
           <LayerRow title="Applications" on={showApps} setOn={setShowApps}>
             <span className="text-sm">Homes applied for solar</span>

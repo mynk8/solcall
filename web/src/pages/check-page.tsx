@@ -4,7 +4,7 @@ import { toast } from "sonner"
 
 import { CardTitle, ChartCard, Missing, SourceTag, Stat, VerdictPill, tierOf, toCsv } from "@/components/bits"
 import { MonthlyBillChart } from "@/components/monthly-bill-chart"
-import { BarList, CostSplit, CoverBars, Milestones, PaybackCurve } from "@/components/proof"
+import { BarList, CostSplit, CoverBars, Milestones, PaybackCurve, Split } from "@/components/proof"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -96,8 +96,10 @@ export function CheckPage() {
           </div>
 
           {answer && !sizeTooBig && (
-            <div className={loading ? "opacity-60 transition-opacity" : "transition-opacity"}>
-              <Numbers answer={answer} o={freeOk && answer.free ? answer.free : answer.paid} />
+            <div className={cn("flex flex-col gap-3 transition-opacity", loading && "opacity-60")}>
+              {/* the free route's numbers only once the scheme is actually open */}
+              <Numbers answer={answer} o={freeOk && answer.free_operational && answer.free ? answer.free : answer.paid} />
+              <CleanPower o={answer.paid} env={answer.environment} />
             </div>
           )}
           {!answer && !error && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24" />)}</div>}
@@ -179,7 +181,7 @@ export function CheckPage() {
             {sizeTooBig ? (
               <Button onClick={() => update({ size: Math.min(h.load, 5) })}>Use {Math.min(h.load, 5)} kW instead</Button>
             ) : (
-              <Button onClick={() => navigate("deal")}>Next: get a fair deal</Button>
+              <Button size="lg" className="h-12 px-6 text-lg" onClick={() => navigate("deal")}>Next: get a fair deal →</Button>
             )}
             <Button variant="outline" onClick={() => setShare(true)} disabled={!answer}>Share verdict</Button>
             <Button variant="outline" onClick={() => navigate("alerts")}>Alert me when this changes</Button>
@@ -228,17 +230,58 @@ export function headline(o: Outcome) {
 }
 
 function VerdictHeadline({ answer }: { answer: Answer }) {
-  if (answer.free_eligible) {
+  const paid = <div className="flex flex-wrap items-center gap-3"><VerdictPill v={answer.paid.verdict} large /><b className="text-2xl leading-tight">{headline(answer.paid)}</b></div>
+  if (!answer.free_eligible) return paid
+  if (answer.free_operational) {
     return (
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-3"><VerdictPill v="GO_FREE" large /><b className="text-xl">You qualify for the zero-cost route (≤ 400 units, ≤ 3 kW).</b></div>
-        <span className="text-sm text-muted-foreground">
-          {answer.free_operational ? "" : "The free scheme isn't open yet. "}If you pay for it today: <VerdictPill v={answer.paid.verdict} />
-        </span>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3"><VerdictPill v="GO_FREE" large /><b className="text-2xl leading-tight">You qualify for the zero-cost route (≤ 400 units, ≤ 3 kW).</b></div>
+        <span className="text-[var(--govuk-secondary-text)]">If you pay for it instead: <VerdictPill v={answer.paid.verdict} /></span>
       </div>
     )
   }
-  return <div className="flex flex-wrap items-center gap-3"><VerdictPill v={answer.paid.verdict} large /><b className="text-xl">{headline(answer.paid)}</b></div>
+  // eligible, but the scheme isn't taking applications: lead with what's true today
+  return (
+    <div className="flex flex-col gap-3">
+      {paid}
+      <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+        <strong className="govuk-tag govuk-tag--yellow">Not open yet</strong>
+        <span>Free-solar scheme: you'd qualify (≤ 400 units, ≤ 3 kW).</span>
+      </div>
+    </div>
+  )
+}
+
+/** The energy side of the verdict: what the roof generates in a year and how much of the home's use that covers. */
+function CleanPower({ o, env }: { o: Outcome; env: Answer["environment"] }) {
+  const solar = o.monthly.reduce((t, m) => t + m.solar_units, 0)
+  const used = o.monthly.reduce((t, m) => t + m.units, 0)
+  if (!solar || !used) return null
+  // net metering carries surplus across months, so cover is judged on the year
+  const covered = Math.min(solar, used)
+  const units = (v: number) => `${Math.round(v).toLocaleString("en-IN")} units`
+  return (
+    <div className="grid items-center gap-x-6 gap-y-3 border-l-8 border-[var(--govuk-green)] bg-white p-5 shadow-[inset_0_0_0_1px_var(--border)] sm:grid-cols-[auto_auto_auto_1fr]">
+      <div className="flex flex-col">
+        <span className="text-[var(--govuk-secondary-text)]">Clean power a year</span>
+        <b className="text-[1.75rem] leading-tight tabular-nums">{units(solar)}</b>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-[var(--govuk-secondary-text)]">Of your use</span>
+        <b className="text-[1.75rem] leading-tight text-[var(--govuk-green)] tabular-nums">{Math.floor((covered / used) * 100)}%</b>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-[var(--govuk-secondary-text)]">CO₂ avoided a year</span>
+        <b className="text-[1.75rem] leading-tight tabular-nums">{env.co2_tonnes_year.toFixed(1)} t</b>
+        <span className="text-sm text-[var(--govuk-secondary-text)]">{env.co2_tonnes_lifetime} t over {env.life_years} years</span>
+      </div>
+      <Split format={units} parts={[
+        { label: "From your roof", value: covered, color: "#00703c" },
+        { label: "From the grid", value: used - covered, color: "#b1b4b6" },
+        { label: "Spare, sent to the grid", value: Math.max(0, solar - used), color: "#f47738" },
+      ]} />
+    </div>
+  )
 }
 
 function Numbers({ answer, o }: { answer: Answer; o: Outcome }) {
@@ -284,12 +327,12 @@ function SizeCompare() {
   const { household: h, update } = useApp()
   const roof = SAMPLE_ROOFS.find((r) => r.id === h.roof)
   const sizes = SIZES.filter((k) => k <= h.load && (!roof || k <= roof.fitKw))
-  const [rows, setRows] = useState<{ size: number; gain: number; payback: number | null; bench: boolean }[] | null>(null)
+  const [rows, setRows] = useState<{ size: number; gain: number; payback: number | null; bench: boolean; co2: number }[] | null>(null)
   useEffect(() => {
     let alive = true
     setRows(null)
     Promise.all(sizes.map((k) => api.answer({ units: h.units, load: h.load, size: k })))
-      .then((rs) => alive && setRows(rs.map((a, i) => ({ size: sizes[i], gain: a.paid.lifetime_gain ?? 0, payback: a.paid.payback_years, bench: a.price_basis === "govt benchmark" }))))
+      .then((rs) => alive && setRows(rs.map((a, i) => ({ size: sizes[i], gain: a.paid.lifetime_gain ?? 0, payback: a.paid.payback_years, bench: a.price_basis === "govt benchmark", co2: a.environment.co2_tonnes_year }))))
       .catch(() => {})
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -303,12 +346,12 @@ function SizeCompare() {
       <CardTitle source={roof ? `Up to ${roof.fitKw} kW fits your roof` : `Up to your ${h.load} kW load`}>Which size?</CardTitle>
       {!rows ? <Skeleton className="h-28" /> : (
         <div className="flex flex-col gap-1">
-          <div className="grid grid-cols-[4rem_1fr_6rem] gap-3 text-sm text-[var(--govuk-secondary-text)]">
-            <span>Size</span><span>Money back in 25 years</span><span className="text-right">Payback</span>
+          <div className="grid grid-cols-[4rem_1fr_5.5rem_6rem] gap-3 text-sm text-[var(--govuk-secondary-text)]">
+            <span>Size</span><span>Money back in 25 years</span><span className="text-right">CO₂ a year</span><span className="text-right">Payback</span>
           </div>
           {rows.map((r) => (
             <button key={r.size} onClick={() => update({ size: r.size })} aria-pressed={r.size === h.size}
-              className={cn("grid grid-cols-[4rem_1fr_6rem] items-center gap-3 border-l-4 py-1.5 pl-2 text-left hover:bg-[var(--govuk-light-grey)]",
+              className={cn("grid grid-cols-[4rem_1fr_5.5rem_6rem] items-center gap-3 border-l-4 py-1.5 pl-2 text-left hover:bg-[var(--govuk-light-grey)]",
                 r.size === h.size ? "border-[var(--govuk-blue)] bg-[var(--govuk-light-grey)]" : "border-transparent")}>
               <span className="flex flex-col"><b>{r.size} kW</b>{r.bench && <span className="text-xs text-[var(--govuk-secondary-text)]">govt price</span>}</span>
               <span className="flex items-center gap-2">
@@ -316,6 +359,7 @@ function SizeCompare() {
                 <span className="text-sm whitespace-nowrap tabular-nums">{r.gain >= 0 ? "+" : ""}{lakh(r.gain)}</span>
                 {best?.size === r.size && <span className="govuk-tag govuk-tag--green">Best</span>}
               </span>
+              <span className="text-right text-[var(--govuk-green)] tabular-nums">{r.co2.toFixed(1)} t</span>
               <span className="text-right tabular-nums">{r.bench ? "—" : years(r.payback)}</span>
             </button>
           ))}

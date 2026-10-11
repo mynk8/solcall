@@ -154,6 +154,31 @@ def _shape(ev: HouseholdEvaluation) -> dict:
     }
 
 
+def _environment(size_kw: float, units_month: float) -> dict:
+    """Energy and emissions side of one system: generation from the yield model, CO2 from the grid factor rule.
+
+    Avoided CO2 = solar units generated x the grid's average emissions per unit (rule
+    `emissions.grid_factor`): every solar unit, used at home or exported, displaces a grid unit.
+    Lifetime figures use each year's degraded generation over `finance.life_years`.
+    """
+    rules = _rules()
+    factor = rules["emissions.grid_factor"]["value"]  # kg CO2 per unit
+    life = int(rules["finance.life_years"]["value"])
+    year1 = engine.yield_model.annual_generation(size_kw)
+    lifetime = sum(engine.yield_model.annual_generation(size_kw, year=t) for t in range(1, life + 1))
+    used = units_month * 12
+    return {
+        "units_year": round(year1),
+        "units_lifetime": round(lifetime),
+        "life_years": life,
+        "home_units_year": round(used),
+        "covers_pct": _num(min(year1, used) / used * 100, 0) if used else None,
+        "co2_tonnes_year": _num(year1 * factor / 1000, 1),
+        "co2_tonnes_lifetime": _num(lifetime * factor / 1000, 0),
+        "grid_kg_co2_per_unit": factor,
+    }
+
+
 def _quote_check(quote: float, ladder: dict) -> dict:
     low, med, high = ladder["market_low"], ladder["market_median"], ladder["market_high"]
     if not med:
@@ -214,6 +239,7 @@ def answer(
         "inputs": {"units": units, "load": load, "size": size, "quote": quote, "surplus_rate": surplus_rate},
         "size_allowed": size_ok,
         "solar_units_month": round(engine.yield_model.annual_generation(size) / 12),
+        "environment": _environment(size, units),
         "price_ladder": ladder,
         "price_basis": basis,
         "paid": _shape(paid),

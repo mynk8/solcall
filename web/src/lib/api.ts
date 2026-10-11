@@ -51,6 +51,17 @@ export type Answer = {
   inputs: { units: number; load: number; size: number; quote: number | null }
   size_allowed: boolean
   solar_units_month: number
+  // generation from the yield model; CO2 = units × the grid emission factor rule (engine-side)
+  environment: {
+    units_year: number
+    units_lifetime: number
+    life_years: number
+    home_units_year: number
+    covers_pct: number | null
+    co2_tonnes_year: number
+    co2_tonnes_lifetime: number
+    grid_kg_co2_per_unit: number
+  }
   price_ladder: PriceLadder
   price_basis: "your quote" | "market median" | "govt benchmark"
   paid: Outcome

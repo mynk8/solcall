@@ -66,7 +66,7 @@ export function ChartCard({ title, source, csv, children, className, boxed }: {
     <div className={cn("flex min-w-0 flex-col", boxed ? "gap-3 rounded-md border bg-white p-4" : "gap-4", className)}>
       <div className="flex items-start gap-2">
         <div className="flex min-w-0 flex-col">
-          <h2 className={boxed ? "font-semibold" : "text-lg font-bold"}>{title}</h2>
+          <h2 className={boxed ? "text-[17px] font-bold" : "text-lg font-bold"}>{title}</h2>
           {source && <span className="text-sm text-[var(--govuk-secondary-text)]">{boxed ? source : `Source: ${source}`}</span>}
         </div>
         <div className="ml-auto flex shrink-0 gap-0.5">
@@ -96,7 +96,7 @@ export function Stat({ k, v, tag, className }: { k: string; v: ReactNode; tag?: 
   return (
     <div className={cn("flex min-w-0 flex-col gap-1 border-t-4 border-[var(--govuk-blue)] bg-[var(--govuk-light-grey)] p-4", className)}>
       <span className="text-[var(--govuk-secondary-text)]">{k}</span>
-      <span className="text-2xl font-bold tabular-nums">{v}</span>
+      <span className="text-[1.75rem] leading-tight font-bold tabular-nums">{v}</span>
       {tag && <div>{tag}</div>}
     </div>
   )

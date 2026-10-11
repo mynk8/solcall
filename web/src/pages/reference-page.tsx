@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ChevronRight } from "lucide-react"
 
 import { CardTitle, ChartCard, SourceTag, Stat, toCsv } from "@/components/bits"
@@ -11,8 +11,11 @@ import { DivisionBars, GenerationBars, PerKwChart, WhoPaysChart } from "@/compon
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { api, type Answer } from "@/lib/api"
 import { useApp } from "@/lib/app-context"
 import { lakh, lakhRange, shortDate } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 const SIZES = [1, 2, 3, 4, 5, 10]
 // GOV.UK palette: orange, turquoise, purple
@@ -44,34 +47,6 @@ export function ReferencePage() {
           </p>
         </div>
         <ScopeFilter />
-      </div>
-
-      {/* KPI row */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat k={scoped ? `Applications in ${scoped}` : "Applications in Delhi"}
-          v={appsTotal?.toLocaleString("en-IN") ?? "…"} tag={
-            <div className="flex flex-col gap-1.5">
-              <DiscomBars />
-              <SourceTag tier="govt">Delhi Solar Portal · {shortDate(today?.applications.as_on)}</SourceTag>
-            </div>} />
-        <Stat k="Scheme loan rate" v={today?.rates ? `${today.rates.scheme_loan_pct.toFixed(2)}%` : "…"}
-          tag={today?.rates && (
-            <Split format={(v) => `${v.toFixed(2)}%`} className="pt-1" parts={[
-              { label: "RBI repo", value: today.rates.repo_pct, color: "#505a5f" },
-              { label: "spread", value: today.rates.scheme_loan_pct - today.rates.repo_pct, color: "#1d70b8" },
-            ]} />)} />
-        {scoped && scoped !== "BRPL" ? (
-          <Stat k={`Latest surcharge (${scoped})`} v="—" tag={<SourceTag tier="govt">BRPL only for now</SourceTag>} />
-        ) : (
-          <Stat k="Latest surcharge (BRPL)" v={today?.surcharge_brpl ? `${today.surcharge_brpl.pct.toFixed(2)}%` : "…"}
-            tag={
-              <div className="flex flex-col gap-1">
-                <Spark step values={(surcharge ?? []).map((r) => r.pct)} format={(v) => `${v}%`}
-                  from={surcharge?.[0]?.from.slice(0, 4)} to={`${surcharge?.length ?? 0} orders · now`} />
-              </div>} />
-        )}
-        <Stat k="Solar output" v={today?.solar_yield ? `${today.solar_yield.kwh_per_kwp.toLocaleString("en-IN")} kWh/kWp` : "…"}
-          tag={today?.solar_yield && <DotStrip className="pt-1" points={today.solar_yield.points.map((p) => ({ name: p.name, value: p.kwh_per_kwp }))} />} />
       </div>
 
       {/* price table + mini map */}
@@ -108,6 +83,36 @@ export function ReferencePage() {
         </div>
         <DiscomMiniMap />
       </div>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat k={scoped ? `Applications in ${scoped}` : "Applications in Delhi"}
+          v={appsTotal?.toLocaleString("en-IN") ?? "…"} tag={
+            <div className="flex flex-col gap-1.5">
+              <DiscomBars />
+              <SourceTag tier="govt">Delhi Solar Portal · {shortDate(today?.applications.as_on)}</SourceTag>
+            </div>} />
+        <Stat k="Scheme loan rate" v={today?.rates ? `${today.rates.scheme_loan_pct.toFixed(2)}%` : "…"}
+          tag={today?.rates && (
+            <Split format={(v) => `${v.toFixed(2)}%`} className="pt-1" parts={[
+              { label: "RBI repo", value: today.rates.repo_pct, color: "#505a5f" },
+              { label: "spread", value: today.rates.scheme_loan_pct - today.rates.repo_pct, color: "#1d70b8" },
+            ]} />)} />
+        {scoped && scoped !== "BRPL" ? (
+          <Stat k={`Latest surcharge (${scoped})`} v="—" tag={<SourceTag tier="govt">BRPL only for now</SourceTag>} />
+        ) : (
+          <Stat k="Latest surcharge (BRPL)" v={today?.surcharge_brpl ? `${today.surcharge_brpl.pct.toFixed(2)}%` : "…"}
+            tag={
+              <div className="flex flex-col gap-1">
+                <Spark step values={(surcharge ?? []).map((r) => r.pct)} format={(v) => `${v}%`}
+                  from={surcharge?.[0]?.from.slice(0, 4)} to={`${surcharge?.length ?? 0} orders · now`} />
+              </div>} />
+        )}
+        <Stat k="Solar output" v={today?.solar_yield ? `${today.solar_yield.kwh_per_kwp.toLocaleString("en-IN")} kWh/kWp` : "…"}
+          tag={today?.solar_yield && <DotStrip className="pt-1" points={today.solar_yield.points.map((p) => ({ name: p.name, value: p.kwh_per_kwp }))} />} />
+      </div>
+
+      <HomeCase />
 
       {/* latest changes */}
       <div className="flex flex-col gap-3 rounded-[2px] border bg-white p-5">
@@ -185,6 +190,46 @@ export function ReferencePage() {
           </ChartCard>
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+const CASE_SIZES = [1, 2, 3, 4, 5]
+
+/** The way in from the market page: pick a roof size, see what it does each year, and check it against your bill. */
+function HomeCase() {
+  const { navigate } = useApp()
+  const [size, setSize] = useState(3)
+  const [envs, setEnvs] = useState<Answer["environment"][] | null>(null)
+  useEffect(() => {
+    let alive = true
+    Promise.all(CASE_SIZES.map((k) => api.answer({ units: 450, load: 5, size: k }))).then((rs) => alive && setEnvs(rs.map((a) => a.environment))).catch(() => {})
+    return () => { alive = false }
+  }, [])
+  const env = envs?.[CASE_SIZES.indexOf(size)]
+  return (
+    <div className="flex flex-wrap items-center gap-x-8 gap-y-4 rounded-[2px] border bg-white p-5">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-lg font-bold">What would a roof like yours do?</h2>
+        <ToggleGroup type="single" size="sm" variant="outline" value={String(size)} onValueChange={(v) => v && setSize(+v)} aria-label="Roof size">
+          {CASE_SIZES.map((k) => <ToggleGroupItem key={k} value={String(k)}>{k} kW</ToggleGroupItem>)}
+        </ToggleGroup>
+      </div>
+      {env ? (
+        <div className="flex flex-1 flex-wrap gap-x-8 gap-y-2">
+          {[
+            { k: "Clean power a year", v: `${env.units_year.toLocaleString("en-IN")} units` },
+            { k: "CO₂ avoided a year", v: `${env.co2_tonnes_year.toFixed(1)} tonnes`, good: true },
+            { k: `Over ${env.life_years} years`, v: `${env.co2_tonnes_lifetime} tonnes`, good: true },
+          ].map((f) => (
+            <div key={f.k} className="flex flex-col">
+              <span className="text-sm text-[var(--govuk-secondary-text)]">{f.k}</span>
+              <b className={cn("text-xl whitespace-nowrap tabular-nums", f.good && "text-[var(--govuk-green)]")}>{f.v}</b>
+            </div>
+          ))}
+        </div>
+      ) : <Skeleton className="h-12 flex-1" />}
+      <Button onClick={() => navigate("check", { size, load: Math.max(3, size) })}>Check {size} kW with my bill <ChevronRight /></Button>
     </div>
   )
 }

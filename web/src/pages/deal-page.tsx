@@ -48,10 +48,14 @@ export function DealPage() {
       </div>
 
       {fair?.free_eligible && (
-        <div className="govuk-inset flex flex-wrap items-center gap-3 border-[var(--govuk-blue)] bg-[#bbd4ea]/30">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <b>You may get this free</b>
-            <span>Homes using up to 400 units with a load up to 3 kW qualify. The scheme isn't open yet.</span>
+        <div className={cn("govuk-inset flex flex-wrap items-center gap-3", fair.free_operational ? "border-[var(--govuk-blue)] bg-[#bbd4ea]/30" : "border-[var(--govuk-yellow)] bg-[#fff7bf]/60")}>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            {fair.free_operational ? <b className="text-lg">You qualify for free solar</b> : (
+              <b className="flex flex-wrap items-center gap-2 text-lg">
+                <strong className="govuk-tag govuk-tag--yellow">Not open yet</strong>Free-solar scheme: you'd qualify, but can't apply today
+              </b>
+            )}
+            <span>For homes using up to 400 units with a load up to 3 kW.{!fair.free_operational && " The prices below are what you'd pay now."}</span>
           </div>
           <Button variant="secondary" onClick={() => navigate("alerts")}>Tell me when it opens</Button>
         </div>
