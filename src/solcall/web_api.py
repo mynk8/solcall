@@ -100,6 +100,22 @@ def _num(x: Optional[float], nd: int = 2) -> Optional[float]:
     return round(x, nd)
 
 
+def _cumulative(net_cost: float, flows: list[float]) -> list[dict]:
+    out, total = [{"year": 0, "value": round(-net_cost)}], -net_cost
+    for t, f in enumerate(flows, start=1):
+        total += f
+        out.append({"year": t, "value": round(total)})
+    return out
+
+
+def _loan_cumulative(emi: float, flows: list[float], loan_years: int = 10) -> list[dict]:
+    out, total = [{"year": 0, "value": 0}], 0.0
+    for t, f in enumerate(flows, start=1):
+        total += f - (12 * emi if t <= loan_years else 0)
+        out.append({"year": t, "value": round(total)})
+    return out
+
+
 def _shape(ev: HouseholdEvaluation) -> dict:
     return {
         "verdict": ev.verdict.value,
@@ -118,6 +134,13 @@ def _shape(ev: HouseholdEvaluation) -> dict:
         "npv": _num(ev.npv, 0),
         "emi_month": _num(ev.emi_monthly, 0) if ev.emi_monthly else None,
         "emi_cover": _num(ev.dscr),
+        # Money in hand over time: year 0 is what you pay; each year adds that year's net saving
+        # (saving − upkeep − inverter). Crossing zero is the simple payback point.
+        "cumulative": _cumulative(ev.net_cost, ev.financials.cash_flows),
+        "lifetime_gain": _num(ev.financials.cash_flows and sum(ev.financials.cash_flows) - ev.net_cost, 0),
+        # Same household, but the whole net cost on the 10-year scheme loan: nothing paid up front,
+        # each year adds that year's saving minus twelve EMIs (none after year 10).
+        "loan_cumulative": _loan_cumulative(ev.emi_monthly, ev.financials.cash_flows) if ev.emi_monthly else None,
         "monthly": [
             {
                 "month": MONTHS_APR_MAR[r.month_index],

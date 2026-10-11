@@ -1,34 +1,29 @@
-import { Map as MapView, MapMarker, MarkerContent, MarkerTooltip } from "@/components/ui/map"
+import { APPS_BINS, DivisionDots } from "@/components/division-dots"
+import { Map as MapView, MapControls } from "@/components/ui/map"
 import { useApp } from "@/lib/app-context"
-import { DISCOM_CENTRES, type Discom } from "@/lib/roofs"
 import { cn } from "@/lib/utils"
 
-const DELHI: [number, number] = [77.16, 28.65]
+const DELHI: [number, number] = [77.12, 28.68]
 
-/** Small, non-interactive map of applications per DISCOM (placed at approximate service-area centres). */
+/** Home-page map card: homes applied per division, filling the card, with a button to the full map. */
 export function DiscomMiniMap({ className }: { className?: string }) {
-  const { today, scope } = useApp()
+  const { navigate } = useApp()
   return (
-    <div className={cn("relative overflow-hidden rounded-lg border", className)}>
-      <MapView center={DELHI} zoom={9.2} theme="light" interactive={false} attributionControl={false} className="absolute inset-0">
-        {today?.applications.by_discom.map((d) => {
-          const c = DISCOM_CENTRES[d.discom as Discom]
-          if (!c) return null
-          const dim = scope !== "Everywhere" && scope !== d.discom
-          const size = 40 + Math.sqrt(d.total) / 3
-          return (
-            <MapMarker key={d.discom} longitude={c.longitude} latitude={c.latitude}>
-              <MarkerContent>
-                <div className={cn("grid place-items-center rounded-full border-2 border-primary/60 bg-primary/20 text-center text-[11px] leading-tight font-semibold backdrop-blur-sm", dim && "opacity-30")}
-                  style={{ width: size, height: size }}>
-                  {Math.round(d.total / 1000)}k<span className="text-[9px] font-normal">{d.discom}</span>
-                </div>
-              </MarkerContent>
-              <MarkerTooltip>{c.name}: {d.total.toLocaleString("en-IN")}</MarkerTooltip>
-            </MapMarker>
-          )
-        })}
+    <div className={cn("relative min-h-80 overflow-hidden rounded-[2px] border bg-white", className)}>
+      <MapView center={DELHI} zoom={9.3} theme="light" scrollZoom={false} attributionControl={false} className="absolute inset-0">
+        <MapControls position="bottom-right" showZoom />
+        <DivisionDots small onPick={() => navigate("map")} />
       </MapView>
+      <span className="absolute top-3 left-3 rounded-md bg-white/90 px-2 py-1 font-bold shadow-sm">Homes applied for solar</span>
+      <button onClick={() => navigate("map")} className="absolute top-3 right-3 rounded-md bg-[#0b0c0c] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#0b0c0c]/85">
+        Open map
+      </button>
+      <div className="absolute bottom-3 left-3 flex flex-col gap-1 rounded-md bg-white/90 p-2 shadow-sm">
+        <span className="text-xs font-bold">Per division</span>
+        {[...APPS_BINS].reverse().map((b) => (
+          <span key={b.from} className="flex items-center gap-1.5 text-xs tabular-nums"><i className="h-3.5 w-5" style={{ background: b.color }} />{b.label}</span>
+        ))}
+      </div>
     </div>
   )
 }

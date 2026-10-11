@@ -1,58 +1,74 @@
 import type { PriceLadder as Ladder } from "@/lib/api"
-import { lakh, lakhRange } from "@/lib/format"
+import { lakh } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-/** One rail for one size: govt benchmark, market low–high band with its median, and an optional quote. */
+const short = (v: number) => lakh(v).replace(" lakh", "L")
+
+// zone colours match the quote verdict tones
+const ZONES = { below: "#dee0e2", fair: "#8fcfb0", high: "#f9b98f", above: "#ee9a8d" }
+
+/**
+ * One size's prices as a gauge: below any price seen, fair (lowest to typical), high side
+ * (typical to highest), above market. The govt benchmark and the quote are marked on it.
+ */
 export function PriceLadder({ ladder, quote, className }: { ladder: Ladder; quote?: number | null; className?: string }) {
-  const values = [
-    ladder.history?.total,
-    ladder.benchmark?.total,
-    ladder.market_low?.total,
-    ladder.market_high?.total,
-    quote ?? undefined,
-  ].filter((v): v is number => v != null)
+  const low = ladder.market_low?.total, high = ladder.market_high?.total
+  const median = ladder.market_median?.total, bench = ladder.benchmark?.total
+  const market = low != null && high != null && median != null
+  // with market prices the scale follows them (and the quote); the benchmark is only drawn if it falls inside
+  const values = (market ? [low, high, quote ?? undefined] : [bench, quote ?? undefined]).filter((v): v is number => v != null)
   if (!values.length) return null
-  const min = Math.min(...values) * 0.92
-  const max = Math.max(...values) * 1.06
-  const pos = (v: number) => `${((v - min) / (max - min)) * 100}%`
+  const min = Math.min(...values) * 0.9, max = Math.max(...values) * 1.08
+  const at = (v: number) => ((v - min) / (max - min)) * 100
+  const benchIn = bench != null && bench > min && bench < max
 
-  const low = ladder.market_low?.total
-  const high = ladder.market_high?.total
-  const median = ladder.market_median?.total
-  const bench = ladder.benchmark?.total
+  const zones = market
+    ? [
+        { key: "below", from: min, to: low, label: "below market" },
+        { key: "fair", from: low, to: median, label: "fair" },
+        { key: "high", from: median, to: high, label: "high side" },
+        { key: "above", from: high, to: max, label: "too high" },
+      ].filter((z) => z.to > z.from)
+    : [{ key: "below", from: min, to: max, label: "" }]
+
+  // labels under the track, staggered on two lines so neighbours don't collide
+  const ticks = [
+    bench != null && !market && { v: bench, text: `govt ${short(bench)} · no market prices yet`, line: 0 },
+    bench != null && market && { v: benchIn ? bench : min, text: `${benchIn ? "" : "← "}govt ${short(bench)}`, line: benchIn ? 0 : 1 },
+    market && { v: low, text: `lowest ${short(low)}`, line: 0 },
+    market && { v: median, text: `typical ${short(median)}`, line: 1 },
+    market && high !== low && { v: high, text: `highest ${short(high)}`, line: 0 },
+  ].filter((t): t is { v: number; text: string; line: number } => !!t)
 
   return (
-    <div className={cn("relative h-16 select-none", className)} role="img"
-      aria-label={`Govt benchmark ${lakh(bench)}; market ${lakh(low)} to ${lakh(high)}${quote ? `; your quote ${lakh(quote)}` : ""}`}>
-      <div className="absolute inset-x-0 top-3 h-1.5 bg-[var(--govuk-light-grey)]" />
-      {low != null && high != null && (
-        <div className="absolute top-2 h-3.5 border-2 border-[var(--govuk-blue)] bg-[#bbd4ea]"
-          style={{ left: pos(low), width: `calc(${pos(high)} - ${pos(low)} + 2px)` }} />
+    <div className={cn("flex select-none flex-col", className)} role="img"
+      aria-label={`Govt benchmark ${lakh(bench)}${market ? `; market ${lakh(low)} to ${lakh(high)}, typical ${lakh(median)}` : ""}${quote ? `; your quote ${lakh(quote)}` : ""}`}>
+      {quote != null && (
+        <div className="relative h-8">
+          <span className="absolute bottom-1 -translate-x-1/2 rounded bg-[#0b0c0c] px-2 py-0.5 text-sm font-bold whitespace-nowrap text-white"
+            style={{ left: `clamp(4rem, ${at(quote)}%, calc(100% - 4rem))` }}>Your quote {short(quote)}</span>
+        </div>
       )}
-      {median != null && <Tick at={pos(median)} className="w-1 bg-[var(--govuk-dark-blue)]" />}
-      {bench != null && <Tick at={pos(bench)} className="w-1 bg-[#0b0c0c]" />}
-      {quote != null && <Tick at={pos(quote)} className="-top-0 h-7 w-1 bg-[var(--govuk-red)]" />}
-
-      {bench != null && <Label at={pos(bench)}>govt {lakh(bench)}</Label>}
-      {low != null && high != null && (
-        <Label at={pos((low + high) / 2)}>
-          market {lakhRange(low, high)}
-        </Label>
-      )}
+      <div className="relative h-7">
+        <div className="absolute inset-0 flex gap-px overflow-hidden rounded-[3px]">
+          {zones.map((z) => (
+            <div key={z.key} className="flex items-center justify-center overflow-hidden text-xs font-semibold whitespace-nowrap text-[#0b0c0c]/80"
+              style={{ width: `${at(z.to) - at(z.from)}%`, background: ZONES[z.key as keyof typeof ZONES] }}>
+              <span className="px-1">{at(z.to) - at(z.from) > 11 ? z.label : ""}</span>
+            </div>
+          ))}
+        </div>
+        {bench != null && (benchIn || !market) && <i className="absolute inset-y-0 border-l-2 border-dashed border-[#0b0c0c]" style={{ left: `${at(bench)}%` }} />}
+        {market && <i className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-[#0b0c0c]/60" style={{ left: `${at(median)}%` }} />}
+        {quote != null && (
+          <i className="absolute -inset-y-1.5 w-1 -translate-x-1/2 rounded bg-[#0b0c0c] ring-2 ring-white" style={{ left: `${at(quote)}%` }} />
+        )}
+      </div>
+      <div className="relative h-9 text-[13px] text-[var(--govuk-secondary-text)] tabular-nums">
+        {ticks.map((t) => (
+          <span key={t.text} className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `clamp(${t.text.length * 0.23}rem, ${at(t.v)}%, calc(100% - ${t.text.length * 0.23}rem))`, top: t.line ? "1.1rem" : "0.1rem" }}>{t.text}</span>
+        ))}
+      </div>
     </div>
-  )
-}
-
-function Tick({ at, className }: { at: string; className?: string }) {
-  return <div className={cn("absolute top-1 h-5 w-0.5 -translate-x-1/2 rounded", className)} style={{ left: at }} />
-}
-
-function Label({ at, children }: { at: string; children: React.ReactNode }) {
-  // clamp so labels near either end don't spill outside the panel
-  const left = `clamp(3.5rem, ${at}, calc(100% - 3.5rem))`
-  return (
-    <span className="absolute top-8 -translate-x-1/2 text-[13px] whitespace-nowrap text-[var(--govuk-secondary-text)] tabular-nums" style={{ left }}>
-      {children}
-    </span>
   )
 }

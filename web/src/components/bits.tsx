@@ -57,25 +57,29 @@ export function CardTitle({ children, source, action }: { children: ReactNode; s
   )
 }
 
-/** Chart card: title + source, CSV download and expand. */
-export function ChartCard({ title, source, csv, children, className }: {
-  title: string; source?: string; csv?: () => string; children: ReactNode; className?: string
+/** Chart card: title + source, CSV download and expand. `boxed` draws it as its own bordered tile for chart grids. */
+export function ChartCard({ title, source, csv, children, className, boxed }: {
+  title: string; source?: string; csv?: () => string; children: ReactNode; className?: string; boxed?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   return (
-    <div className={cn("flex min-w-0 flex-col gap-4", className)}>
-      <CardTitle source={source && `Source: ${source}`} action={
-        <div className="flex gap-1">
+    <div className={cn("flex min-w-0 flex-col", boxed ? "gap-3 rounded-md border bg-white p-4" : "gap-4", className)}>
+      <div className="flex items-start gap-2">
+        <div className="flex min-w-0 flex-col">
+          <h2 className={boxed ? "font-semibold" : "text-lg font-bold"}>{title}</h2>
+          {source && <span className="text-sm text-[var(--govuk-secondary-text)]">{boxed ? source : `Source: ${source}`}</span>}
+        </div>
+        <div className="ml-auto flex shrink-0 gap-0.5">
           {csv && (
-            <Button variant="ghost" size="sm" onClick={() => download(`${slug(title)}.csv`, csv())}>
-              <Download /> CSV
+            <Button variant="ghost" size="sm" onClick={() => download(`${slug(title)}.csv`, csv())} aria-label="Download CSV">
+              <Download />{!boxed && " CSV"}
             </Button>
           )}
           <Button variant="ghost" size="sm" onClick={() => setExpanded(true)} aria-label="Expand chart">
             <Maximize2 />
           </Button>
         </div>
-      }>{title}</CardTitle>
+      </div>
       {children}
       <Dialog open={expanded} onOpenChange={setExpanded}>
         <DialogContent className="sm:max-w-4xl">

@@ -32,7 +32,7 @@ export function CommandPalette() {
         </CommandGroup>
         <CommandGroup heading="Sizes">
           {[1, 2, 3, 5, 10].map((k) => (
-            <CommandItem key={k} value={`${k} kW price quote`} onSelect={() => run(() => navigate("deal", { quoteSize: k, dealTab: "paid" }))}>
+            <CommandItem key={k} value={`${k} kW price quote`} onSelect={() => run(() => navigate("deal", { size: k }))}>
               {k} kW price and quote check
             </CommandItem>
           ))}

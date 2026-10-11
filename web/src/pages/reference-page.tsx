@@ -1,12 +1,13 @@
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { ChevronRight } from "lucide-react"
 
-import { CardTitle, ChartCard, Missing, SourceTag, Stat, toCsv } from "@/components/bits"
-import { EvilBarChart } from "@/components/evilcharts/charts/recharts-bar-chart"
+import { CardTitle, ChartCard, SourceTag, Stat, toCsv } from "@/components/bits"
 import { EvilLineChart } from "@/components/evilcharts/charts/recharts-line-chart"
 import { DiscomMiniMap } from "@/components/discom-map"
 import { ScopeFilter } from "@/components/scope-filter"
-import { PriceLadder } from "@/components/price-ladder"
+import { PriceRangeChart } from "@/components/price-range-chart"
+import { BarList, DotStrip, Spark, Split } from "@/components/proof"
+import { DivisionBars, GenerationBars, PerKwChart, WhoPaysChart } from "@/components/reference-charts"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -29,13 +30,6 @@ export function ReferencePage() {
   const discomRow = today?.applications.by_discom.find((d) => d.discom === scoped)
   const appsTotal = scoped ? discomRow?.total : today?.applications.total
 
-  const topDivisions = useMemo(() => (divisions ?? [])
-    .filter((d) => !scoped || d.discom === scoped)
-    .sort((a, b) => b.applications - a.applications)
-    .slice(0, 10)
-    .map((d) => ({ division: d.division, BRPL: d.discom === "BRPL" ? d.applications : 0, BYPL: d.discom === "BYPL" ? d.applications : 0, TPDDL: d.discom === "TPDDL" ? d.applications : 0 })),
-  [divisions, scoped])
-
   const surchargeData = (surcharge ?? []).map((r) => ({ from: r.from.slice(0, 7), pct: r.pct }))
   const asOf = ladders.get(3)?.market_median?.as_of?.split(", ").pop()
 
@@ -55,27 +49,39 @@ export function ReferencePage() {
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat k={scoped ? `Applications in ${scoped}` : "Applications in Delhi"}
-          v={appsTotal?.toLocaleString("en-IN") ?? "…"} tag={<SourceTag tier="govt">Delhi Solar Portal · {shortDate(today?.applications.as_on)}</SourceTag>} />
+          v={appsTotal?.toLocaleString("en-IN") ?? "…"} tag={
+            <div className="flex flex-col gap-1.5">
+              <DiscomBars />
+              <SourceTag tier="govt">Delhi Solar Portal · {shortDate(today?.applications.as_on)}</SourceTag>
+            </div>} />
         <Stat k="Scheme loan rate" v={today?.rates ? `${today.rates.scheme_loan_pct.toFixed(2)}%` : "…"}
-          tag={<SourceTag tier="govt">RBI repo {today?.rates?.repo_pct.toFixed(2)}% + 0.50</SourceTag>} />
+          tag={today?.rates && (
+            <Split format={(v) => `${v.toFixed(2)}%`} className="pt-1" parts={[
+              { label: "RBI repo", value: today.rates.repo_pct, color: "#505a5f" },
+              { label: "spread", value: today.rates.scheme_loan_pct - today.rates.repo_pct, color: "#1d70b8" },
+            ]} />)} />
         {scoped && scoped !== "BRPL" ? (
-          <Missing what={`${scoped} surcharge`} className="min-h-24">Only BRPL's surcharge page is scraped so far.</Missing>
+          <Stat k={`Latest surcharge (${scoped})`} v="—" tag={<SourceTag tier="govt">BRPL only for now</SourceTag>} />
         ) : (
           <Stat k="Latest surcharge (BRPL)" v={today?.surcharge_brpl ? `${today.surcharge_brpl.pct.toFixed(2)}%` : "…"}
-            tag={<SourceTag tier="govt">from {shortDate(today?.surcharge_brpl?.from)}</SourceTag>} />
+            tag={
+              <div className="flex flex-col gap-1">
+                <Spark step values={(surcharge ?? []).map((r) => r.pct)} format={(v) => `${v}%`}
+                  from={surcharge?.[0]?.from.slice(0, 4)} to={`${surcharge?.length ?? 0} orders · now`} />
+              </div>} />
         )}
         <Stat k="Solar output" v={today?.solar_yield ? `${today.solar_yield.kwh_per_kwp.toLocaleString("en-IN")} kWh/kWp` : "…"}
-          tag={<SourceTag tier="data">Global Solar Atlas · lowest of 5 points</SourceTag>} />
+          tag={today?.solar_yield && <DotStrip className="pt-1" points={today.solar_yield.points.map((p) => ({ name: p.name, value: p.kwh_per_kwp }))} />} />
       </div>
 
       {/* price table + mini map */}
-      <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr]">
+      <div className="grid items-stretch gap-3 lg:grid-cols-[1.5fr_1fr]">
         <div className="flex min-w-0 flex-col gap-3 rounded-[2px] border bg-white p-5">
-          <CardTitle source="Before subsidy · govt benchmark and installer pages">Price per system size</CardTitle>
+          <CardTitle source="Market price from installer pages; you pay = typical price − central and Delhi subsidy">Price per system size</CardTitle>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="border-b-2 border-foreground text-left">
-                <tr><th className="py-2 pr-3 font-bold">Size</th><th className="pr-3 font-bold">Govt benchmark</th><th className="pr-3 font-bold">Market price</th><th className="pr-3 font-bold" title="Number of installer prices">Prices seen</th><th /></tr>
+                <tr><th className="py-2 pr-3 font-bold">Size</th><th className="pr-3 font-bold">Market price</th><th className="pr-3 font-bold">You pay after subsidy</th><th className="pr-3 font-bold">Govt benchmark</th><th /></tr>
               </thead>
               <tbody>
                 {SIZES.map((k) => {
@@ -83,13 +89,13 @@ export function ReferencePage() {
                   return (
                     <tr key={k} className="border-b">
                       <td className="py-3 pr-3 font-bold whitespace-nowrap">{k} kW</td>
-                      <td className="pr-3 whitespace-nowrap tabular-nums">{l ? lakh(l.benchmark?.total) : "…"}</td>
                       <td className="pr-3 whitespace-nowrap tabular-nums">
                         {l?.market_low ? lakhRange(l.market_low.total, l.market_high?.total) : <span className="text-muted-foreground">no prices yet</span>}
                       </td>
-                      <td className="pr-3 tabular-nums">{l?.market_median?.n ?? 0}</td>
+                      <td className="pr-3 font-bold whitespace-nowrap text-[var(--govuk-green)] tabular-nums">{l ? lakh(l.typical_you_pay) : "…"}</td>
+                      <td className="pr-3 whitespace-nowrap text-[var(--govuk-secondary-text)] tabular-nums">{l ? lakh(l.benchmark?.total) : "…"}</td>
                       <td className="py-2 text-right">
-                        <Button variant="outline" size="sm" onClick={() => navigate("deal", { quoteSize: k, dealTab: "paid" })} aria-label={`Check a ${k} kW quote`}>
+                        <Button variant="outline" size="sm" onClick={() => navigate("deal", { size: k })} aria-label={`Check a ${k} kW quote`}>
                           Check a quote <ChevronRight />
                         </Button>
                       </td>
@@ -100,11 +106,7 @@ export function ReferencePage() {
             </table>
           </div>
         </div>
-        <div className="flex min-w-0 flex-col gap-3 rounded-[2px] border bg-white p-5">
-          <CardTitle source={<>Source: Delhi Solar Portal</>}>Applications by DISCOM</CardTitle>
-          <DiscomMiniMap className="h-48" />
-          <Button className="self-start" onClick={() => navigate("map")}>Find my roof</Button>
-        </div>
+        <DiscomMiniMap />
       </div>
 
       {/* latest changes */}
@@ -121,80 +123,85 @@ export function ReferencePage() {
         </div>
       </div>
 
-      {/* topic tabs */}
-      <Tabs value={tab} onValueChange={setTab} className="flex flex-col gap-3 rounded-[2px] border bg-white p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <TabsList>
-            <TabsTrigger value="ladder">Price ladder</TabsTrigger>
+      {/* topic tabs: a grid of chart cards per topic */}
+      <Tabs value={tab} onValueChange={setTab} className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-end gap-2 border-b border-[var(--govuk-mid-grey)]">
+          <TabsList className="w-auto flex-1 border-b-0">
+            <TabsTrigger value="ladder">Prices</TabsTrigger>
             <TabsTrigger value="adopt">Adoption</TabsTrigger>
-            <TabsTrigger value="surch">Surcharge</TabsTrigger>
-            <TabsTrigger value="rates">Loan rates</TabsTrigger>
+            <TabsTrigger value="bills">Bills &amp; rates</TabsTrigger>
           </TabsList>
-          <button className="ml-auto govuk-link" onClick={() => navigate("guide")}>How we price</button>
+          <button className="ml-auto pb-2 govuk-link" onClick={() => navigate("guide")}>How we price</button>
         </div>
-        <TabsContent value="ladder">
-          <ChartCard title="Price ladder: one strip per size" source="reference_price.json"
-            csv={() => toCsv(SIZES.map((k) => { const l = ladders.get(k); return { size_kw: k, benchmark: l?.benchmark?.total, market_low: l?.market_low?.total, market_median: l?.market_median?.total, market_high: l?.market_high?.total, history: l?.history?.total, n: l?.market_median?.n ?? 0 } }))}>
-            <div className="flex flex-col gap-1">
-              {SIZES.map((k) => {
-                const l = ladders.get(k)
-                return (
-                  <div key={k} className="grid grid-cols-[3.5rem_1fr] items-start gap-3">
-                    <span className="pt-1.5 text-sm font-semibold">{k} kW</span>
-                    {l ? <PriceLadder ladder={l} /> : <Skeleton className="h-10" />}
-                  </div>
-                )
-              })}
-              <p className="text-sm text-muted-foreground">Black line: government benchmark. Blue band: lowest to highest market price, with the median in dark blue. Sizes are never pooled.</p>
-            </div>
+        <TabsContent value="ladder" className="grid gap-3 lg:grid-cols-3">
+          <ChartCard boxed title="Price by system size" source="Installer pages and govt benchmark, before subsidy"
+            csv={() => toCsv(SIZES.map((k) => { const l = ladders.get(k); return { size_kw: k, market_low: l?.market_low?.total, market_median: l?.market_median?.total, market_high: l?.market_high?.total, benchmark: l?.benchmark?.total, you_pay_after_subsidy: l?.typical_you_pay, prices_seen: l?.market_median?.n ?? 0 } }))}>
+            {ladders.size ? <PriceRangeChart ladders={ladders} className="aspect-auto h-64 w-full flex-none" /> : <Skeleton className="h-64" />}
+          </ChartCard>
+          <ChartCard boxed title="Price per kW" source="Bigger systems cost less per kW"
+            csv={() => toCsv(SIZES.map((k) => { const l = ladders.get(k); return { size_kw: k, market_median_per_kw: l?.market_median?.per_kw, benchmark_per_kw: l?.benchmark?.per_kw } }))}>
+            {ladders.size ? <PerKwChart ladders={ladders} /> : <Skeleton className="h-64" />}
+          </ChartCard>
+          <ChartCard boxed title="Who pays the price" source="Typical price split into subsidies and your share"
+            csv={() => toCsv(SIZES.map((k) => { const l = ladders.get(k); return { size_kw: k, typical_price: l?.typical_price, central_subsidy: l?.central_subsidy, total_subsidy: l?.typical_subsidy, you_pay: l?.typical_you_pay } }))}>
+            {ladders.size ? <WhoPaysChart ladders={ladders} /> : <Skeleton className="h-64" />}
           </ChartCard>
         </TabsContent>
-        <TabsContent value="adopt">
-          <ChartCard title={`Applications by division${scoped ? ` · ${scoped}` : ""} (top 10)`} source="Delhi Solar Portal"
-            csv={() => toCsv((divisions ?? []).map((d) => ({ ...d })))}>
-            {topDivisions.length ? (
-              <EvilBarChart config={{ BRPL: { label: "BRPL", colors: DISCOM_COLORS.BRPL }, BYPL: { label: "BYPL", colors: DISCOM_COLORS.BYPL }, TPDDL: { label: "TPDDL", colors: DISCOM_COLORS.TPDDL } }}
-                data={topDivisions} stackType="stacked" className="aspect-auto h-72 w-full flex-none" barRadius={3}>
-                <EvilBarChart.Grid vertical={false} />
-                <EvilBarChart.XAxis dataKey="division" tickLine={false} axisLine={false} fontSize={10} interval={0} angle={-30} textAnchor="end" height={50} />
-                <EvilBarChart.YAxis width={44} tickLine={false} axisLine={false} fontSize={11} />
-                <EvilBarChart.Tooltip />
-                <EvilBarChart.Legend />
-                <EvilBarChart.Bar dataKey="BRPL" />
-                <EvilBarChart.Bar dataKey="BYPL" />
-                <EvilBarChart.Bar dataKey="TPDDL" />
-              </EvilBarChart>
-            ) : <Skeleton className="h-72" />}
-          </ChartCard>
-        </TabsContent>
-        <TabsContent value="surch">
-          {scoped && scoped !== "BRPL" ? (
-            <Missing what={`${scoped} surcharge history`} className="min-h-40">Only BRPL's PPAC/FPPAS page is scraped so far.</Missing>
-          ) : (
-            <ChartCard title="BRPL surcharge % over time" source="BRPL PPAC/FPPAS orders" csv={() => toCsv((surcharge ?? []).map((r) => ({ ...r })))}>
-              <EvilLineChart config={{ pct: { label: "Surcharge %", colors: { light: ["#1d70b8"], dark: ["#1d70b8"] } } }}
-                data={surchargeData} curveType="stepAfter" className="aspect-auto h-64 w-full flex-none">
-                <EvilLineChart.Grid vertical={false} />
-                <EvilLineChart.XAxis dataKey="from" tickLine={false} axisLine={false} fontSize={11} />
-                <EvilLineChart.YAxis width={36} tickLine={false} axisLine={false} fontSize={11} tickFormatter={(v: number) => `${v}%`} />
-                <EvilLineChart.Tooltip />
-                <EvilLineChart.Line dataKey="pct" />
-              </EvilLineChart>
-              <p className="text-sm text-muted-foreground">Context only: the bill model folds surcharge into its calibration and does not apply these orders month by month.</p>
+        <TabsContent value="adopt" className="grid gap-3 lg:grid-cols-3">
+          {(["BRPL", "BYPL", "TPDDL"] as const).filter((d) => !scoped || d === scoped).map((d) => (
+            <ChartCard boxed key={d} title={`Homes applied · ${d}`} source="Top divisions, Delhi Solar Portal" className={scoped ? "lg:col-span-3" : undefined}
+              csv={() => toCsv((divisions ?? []).filter((x) => x.discom === d).map((x) => ({ ...x })))}>
+              {divisions ? <DivisionBars discom={d} limit={scoped ? 14 : 8} color={DISCOM_COLORS[d].light[0]} /> : <Skeleton className="h-56" />}
             </ChartCard>
-          )}
+          ))}
         </TabsContent>
-        <TabsContent value="rates">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Stat k="RBI repo rate" v={today?.rates ? `${today.rates.repo_pct.toFixed(2)}%` : "…"} tag={<SourceTag tier="govt">RBI · {shortDate(today?.rates?.as_of)}</SourceTag>} />
-            <Stat k="Scheme solar loan (≤ 3 kW)" v={today?.rates ? `${today.rates.scheme_loan_pct.toFixed(2)}%` : "…"} tag={<SourceTag tier="govt">repo + 0.50%</SourceTag>} />
-            <Stat k="Term deposit > 1 year" v={today?.rates ? `${today.rates.deposit_low_pct.toFixed(2)}–${today.rates.deposit_high_pct.toFixed(2)}%` : "…"}
-              tag={<SourceTag tier="govt">what your cash would earn instead</SourceTag>} />
-          </div>
+        <TabsContent value="bills" className="grid gap-3 lg:grid-cols-3">
+          <ChartCard boxed title="BRPL surcharge on your bill" source="% added to the bill · PPAC/FPPAS orders, context only" csv={() => toCsv((surcharge ?? []).map((r) => ({ ...r })))}>
+            <EvilLineChart config={{ pct: { label: "Surcharge %", colors: { light: ["#1d70b8"], dark: ["#1d70b8"] } } }}
+              data={surchargeData} curveType="stepAfter" className="aspect-auto h-56 w-full flex-none">
+              <EvilLineChart.Grid vertical={false} />
+              <EvilLineChart.XAxis dataKey="from" tickLine={false} axisLine={false} fontSize={11} />
+              <EvilLineChart.YAxis width={36} tickLine={false} axisLine={false} fontSize={11} tickFormatter={(v: number) => `${v}%`} />
+              <EvilLineChart.Tooltip />
+              <EvilLineChart.Line dataKey="pct" strokeWidth={2.5} />
+            </EvilLineChart>
+          </ChartCard>
+          <ChartCard boxed title="Borrow or use savings?" source={`What the loan costs against what a deposit earns · RBI, ${shortDate(today?.rates?.as_of)}`}>
+            {today?.rates ? (
+              <div className="flex flex-1 flex-col justify-center gap-4">
+                <BarList size="lg" labelWidth="7.5rem" max={8} rows={[
+                  { label: "RBI repo", value: today.rates.repo_pct, display: `${today.rates.repo_pct.toFixed(2)}%`, color: "#b1b4b6" },
+                  { label: "Solar loan costs", value: today.rates.scheme_loan_pct, display: `${today.rates.scheme_loan_pct.toFixed(2)}%`, color: "#1d70b8" },
+                  { label: "Deposit earns", value: today.rates.deposit_high_pct, from: today.rates.deposit_low_pct, display: `${today.rates.deposit_low_pct.toFixed(1)}–${today.rates.deposit_high_pct.toFixed(2)}%`, color: "#00703c" },
+                ]} />
+                <span className={`govuk-tag self-start ${today.rates.deposit_low_pct >= today.rates.scheme_loan_pct ? "govuk-tag--green" : "govuk-tag--yellow"}`}>
+                  {today.rates.deposit_low_pct >= today.rates.scheme_loan_pct ? "Loan costs no more than savings earn" : "Loan costs more than savings earn"}
+                </span>
+              </div>
+            ) : <Skeleton className="h-40" />}
+          </ChartCard>
+          <ChartCard boxed title="Units a month, by system size" source={`Dashed lines: the 200 and 400 unit subsidy brackets · sun varies only ${today?.solar_yield?.spread_pct ?? "…"}% across Delhi`}>
+            <GenerationBars />
+          </ChartCard>
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
 
-      <p className="text-sm text-muted-foreground">Market prices come from installer websites and are indicative.</p>
+/** Applications per DISCOM as three short bars; the selected DISCOM is highlighted. */
+function DiscomBars() {
+  const { today, scope } = useApp()
+  const rows = today?.applications.by_discom ?? []
+  const max = Math.max(1, ...rows.map((r) => r.total))
+  return (
+    <div className="flex flex-col gap-0.5">
+      {rows.map((r) => (
+        <div key={r.discom} className="grid grid-cols-[3rem_1fr] items-center gap-1.5 text-xs">
+          <span className="text-[var(--govuk-secondary-text)]">{r.discom}</span>
+          <div className="h-2" style={{ width: `${(r.total / max) * 100}%`, background: scope === "Everywhere" || scope === r.discom ? "#1d70b8" : "#b1b4b6" }} />
+        </div>
+      ))}
     </div>
   )
 }

@@ -2,8 +2,9 @@ import { useEffect, useState } from "react"
 import { QRCodeSVG } from "qrcode.react"
 import { toast } from "sonner"
 
-import { CardTitle, Missing, SourceTag, Stat, VerdictPill, tierOf } from "@/components/bits"
+import { CardTitle, ChartCard, Missing, SourceTag, Stat, VerdictPill, tierOf, toCsv } from "@/components/bits"
 import { MonthlyBillChart } from "@/components/monthly-bill-chart"
+import { BarList, CostSplit, CoverBars, Milestones, PaybackCurve } from "@/components/proof"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -17,6 +18,7 @@ import { useAnswer, useApp } from "@/lib/app-context"
 import { lakh, rupees, years } from "@/lib/format"
 import { SAMPLE_ROOFS } from "@/lib/roofs"
 import { shareUrl } from "@/lib/url-state"
+import { cn } from "@/lib/utils"
 import { ChevronDown } from "lucide-react"
 
 const LOADS = [2, 3, 5, 7]
@@ -92,7 +94,7 @@ export function CheckPage() {
         {/* result */}
         <div className="flex min-w-0 flex-col gap-3">
           <div className="flex flex-col gap-2 rounded-[2px] border bg-white p-5">
-            <CardTitle source="Worked out by the SolCall engine from Delhi tariff and subsidy rules">Verdict</CardTitle>
+            <CardTitle>Verdict</CardTitle>
             {error ? <p className="text-sm text-destructive">Couldn't reach the engine: {error}</p>
               : sizeTooBig ? <div className="flex items-center gap-2"><VerdictPill v="NOT_WORTH" /><b>System size can't exceed your sanctioned load.</b></div>
               : !answer ? <Skeleton className="h-8" />
@@ -106,13 +108,54 @@ export function CheckPage() {
           )}
           {!answer && !error && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24" />)}</div>}
 
-          <div className="flex flex-col gap-2 rounded-[2px] border bg-white p-5">
-            <CardTitle source="Delhi tariff and net metering, year 1">Monthly bill, Apr–Mar: now vs with solar</CardTitle>
-            {answer ? <MonthlyBillChart monthly={answer.paid.monthly} /> : <Skeleton className="h-44" />}
+          <div className="grid gap-3 xl:grid-cols-2">
+            <ChartCard boxed title="Money back over time" source="Year-by-year saving after upkeep and inverter replacement"
+              csv={() => toCsv((answer?.paid.cumulative ?? []).map((c) => ({ year: c.year, money_in_hand_inr: c.value })))}>
+              {answer ? (
+                <>
+                  <Milestones steps={[
+                    { label: "Pay today", value: lakh(answer.paid.you_pay) },
+                    { label: "Paid back", value: answer.paid.payback_years != null ? years(answer.paid.payback_years) : "never", tone: answer.paid.payback_years == null ? "bad" : undefined },
+                    ...(answer.paid.lifetime_gain != null ? [{ label: "In 25 years", value: `${answer.paid.lifetime_gain >= 0 ? "+" : ""}${lakh(answer.paid.lifetime_gain)}`, tone: answer.paid.lifetime_gain >= 0 ? "good" as const : "bad" as const }] : []),
+                  ]} />
+                  <PaybackCurve breakEvenYear={answer.paid.payback_years}
+                    series={[{ key: "you", label: "Money in hand", color: "#00703c", points: answer.paid.cumulative }]} className="h-56" />
+                </>
+              ) : <Skeleton className="h-64" />}
+            </ChartCard>
+            <ChartCard boxed title="Your bill, month by month" source="Bill now against bill with solar"
+              csv={() => toCsv((answer?.paid.monthly ?? []).map((m) => ({ ...m })))}>
+              {answer ? (
+                <>
+                  <Milestones steps={[
+                    { label: "Bill now", value: `${rupees(answer.paid.bill_now_month)}/mo` },
+                    { label: "With solar", value: `${rupees(answer.paid.bill_with_month)}/mo`, tone: "good" },
+                    { label: "Year-1 saving", value: rupees(answer.paid.saving_year1), tone: "good" },
+                  ]} />
+                  <MonthlyBillChart monthly={answer.paid.monthly} />
+                </>
+              ) : <Skeleton className="h-64" />}
+            </ChartCard>
           </div>
 
+          {!sizeTooBig && (
+            <div className="grid gap-3 xl:grid-cols-[1.6fr_1fr]">
+              <SizeCompare />
+              {answer?.paid.value_per_unit != null && answer.paid.cost_per_unit != null && (
+                <div className="flex flex-col gap-3 rounded-[2px] border bg-white p-5">
+                  <CardTitle source="Over 25 years, per unit of solar power">Worth it per unit?</CardTitle>
+                  <BarList labelWidth="5rem" rows={[
+                    { label: "Worth", value: answer.paid.value_per_unit, display: `₹${answer.paid.value_per_unit.toFixed(2)}`, color: "#00703c" },
+                    { label: "Costs", value: answer.paid.cost_per_unit, display: `₹${answer.paid.cost_per_unit.toFixed(2)}`, color: "#b1b4b6" },
+                  ]} />
+                  <CostSplit price={answer.paid.price} central={answer.paid.central_subsidy} delhi={answer.paid.delhi_subsidy} youPay={answer.paid.you_pay} />
+                </div>
+              )}
+            </div>
+          )}
+
           <Collapsible className="rounded-[2px] border bg-white px-5 py-4">
-            <CollapsibleTrigger className="group flex w-full items-center gap-2 text-sm font-semibold">
+            <CollapsibleTrigger className="group flex w-full items-center gap-2 font-semibold">
               <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />Why? Rules and sources used
             </CollapsibleTrigger>
             <CollapsibleContent className="flex flex-col gap-2 pt-3">
@@ -133,9 +176,6 @@ export function CheckPage() {
                   </div>
                 )
               })}
-              {answer && (
-                <p className="text-sm">A solar unit is worth <b>₹{answer.paid.value_per_unit?.toFixed(2)}</b> to you and costs <b>₹{answer.paid.cost_per_unit?.toFixed(2)}</b> over 25 years.</p>
-              )}
               <p className="text-sm text-muted-foreground">Tariffs held flat for 25 years (conservative). Price used: {answer ? `${lakh(answer.paid.price)} (${answer.price_basis})` : "…"}.</p>
               <button className="self-start text-sm govuk-link" onClick={() => navigate("guide")}>Why is my subsidy different? Read the guide →</button>
             </CollapsibleContent>
@@ -145,7 +185,7 @@ export function CheckPage() {
             {sizeTooBig ? (
               <Button onClick={() => update({ size: Math.min(h.load, 5) })}>Use {Math.min(h.load, 5)} kW instead</Button>
             ) : (
-              <Button onClick={() => navigate("deal", { dealTab: null })}>{freeOk ? "Next: apply for the free scheme →" : "Next: get a fair price →"}</Button>
+              <Button onClick={() => navigate("deal")}>Next: get a fair deal</Button>
             )}
             <Button variant="outline" onClick={() => setShare(true)} disabled={!answer}>Share verdict</Button>
             <Button variant="outline" onClick={() => navigate("alerts")}>Alert me when this changes</Button>
@@ -166,7 +206,6 @@ export function CheckPage() {
       <Dialog open={share} onOpenChange={setShare}>
         <DialogContent>
           <DialogHeader><DialogTitle>Share your verdict</DialogTitle></DialogHeader>
-          <Missing what="verdict card image" className="min-h-28">A ready-to-send image of this verdict for WhatsApp.</Missing>
           <div className="flex gap-4">
             <div className="rounded-lg bg-white p-2"><QRCodeSVG value={shareUrl()} size={88} /></div>
             <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -187,7 +226,7 @@ export function CheckPage() {
 
 export function headline(o: Outcome) {
   switch (o.verdict) {
-    case "GO": return `Pays back in ${years(o.payback_discounted_years)}${o.emi_cover ? `; loan covered ${o.emi_cover.toFixed(1)}×` : ""}`
+    case "GO": return `Pays back in ${years(o.payback_years)}${o.emi_cover ? `; loan covered ${o.emi_cover.toFixed(1)}×` : ""}`
     case "MARGINAL": return "Saves money, but slowly at this usage."
     case "NOT_WORTH": return "At this usage, paying for solar costs more than it saves."
     case "GO_FREE": return "You qualify for the zero-cost route (≤ 400 units, ≤ 3 kW)."
@@ -211,16 +250,17 @@ function VerdictHeadline({ answer }: { answer: Answer }) {
 function Numbers({ answer, o }: { answer: Answer; o: Outcome }) {
   const { today } = useApp()
   const p = answer.paid
+  const rate = today?.rates ? `${today.rates.scheme_loan_pct.toFixed(2)}%` : "scheme"
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <Stat k="Monthly bill: now → with solar" v={`${rupees(o.bill_now_month)} → ${rupees(o.bill_with_month)}`} tag={<SourceTag tier="govt">Delhi tariff + subsidy</SourceTag>} />
-      <Stat k="Payback" v={o.verdict === "GO_FREE" ? "nothing to pay" : years(p.payback_discounted_years)}
-        tag={<SourceTag tier={answer.price_basis === "market median" ? "market" : "govt"}>at {lakh(p.price)} · {answer.price_basis}</SourceTag>} />
-      {answer.loan_applies && p.emi_cover ? (
-        <Stat k="Loan EMI cover" v={`${p.emi_cover.toFixed(1)}×`}
-          tag={<SourceTag tier="govt">{today?.rates ? `${today.rates.scheme_loan_pct.toFixed(2)}%` : ""} loan · EMI {rupees(p.emi_month)}</SourceTag>} />
+      <Stat k="Monthly bill" v={rupees(o.bill_with_month)} tag={<SourceTag tier="govt">down from {rupees(o.bill_now_month)}</SourceTag>} />
+      <Stat k="Payback" v={o.verdict === "GO_FREE" ? "Nothing to pay" : years(p.payback_years)}
+        tag={<SourceTag tier="govt">at {lakh(p.price)} {answer.price_basis === "your quote" ? "quoted" : "market price"}</SourceTag>} />
+      {answer.loan_applies && p.emi_cover && p.emi_month ? (
+        <Stat k={`Loan cover (${rate})`} v={`${p.emi_cover.toFixed(1)}×`}
+          tag={<CoverBars saving={p.saving_year1 / 12} emi={p.emi_month} className="pt-1" />} />
       ) : (
-        <Stat k="Loan EMI cover" v="—" tag={<SourceTag tier="assumption">scheme loan is for ≤ 3 kW</SourceTag>} />
+        <Stat k="Loan cover" v="—" tag={<SourceTag tier="govt">scheme loan is for up to 3 kW</SourceTag>} />
       )}
     </div>
   )
@@ -242,5 +282,51 @@ function BillToUnits({ load, onUnits }: { load: number; onUnits: (u: number) => 
       <Input inputMode="numeric" placeholder="Bill in ₹" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))} autoFocus />
       <Button type="submit" variant="secondary" size="sm">Use</Button>
     </form>
+  )
+}
+
+/** Every size the roof and load allow, side by side: money back over 25 years and payback. */
+function SizeCompare() {
+  const { household: h, update } = useApp()
+  const roof = SAMPLE_ROOFS.find((r) => r.id === h.roof)
+  const sizes = SIZES.filter((k) => k <= h.load && (!roof || k <= roof.fitKw))
+  const [rows, setRows] = useState<{ size: number; gain: number; payback: number | null; bench: boolean }[] | null>(null)
+  useEffect(() => {
+    let alive = true
+    setRows(null)
+    Promise.all(sizes.map((k) => api.answer({ units: h.units, load: h.load, size: k })))
+      .then((rs) => alive && setRows(rs.map((a, i) => ({ size: sizes[i], gain: a.paid.lifetime_gain ?? 0, payback: a.paid.payback_years, bench: a.price_basis === "govt benchmark" }))))
+      .catch(() => {})
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [h.units, h.load, sizes.join()])
+  if (sizes.length < 2) return null
+  // only sizes with real market prices compete for "most money back"
+  const best = rows?.filter((r) => !r.bench).reduce<(typeof rows)[number] | undefined>((a, b) => (!a || b.gain > a.gain ? b : a), undefined)
+  const max = Math.max(1, ...(rows ?? []).map((r) => Math.abs(r.gain)))
+  return (
+    <div className="flex flex-col gap-3 rounded-[2px] border bg-white p-5">
+      <CardTitle source={roof ? `Up to ${roof.fitKw} kW fits your roof` : `Up to your ${h.load} kW load`}>Which size?</CardTitle>
+      {!rows ? <Skeleton className="h-28" /> : (
+        <div className="flex flex-col gap-1">
+          <div className="grid grid-cols-[4rem_1fr_6rem] gap-3 text-sm text-[var(--govuk-secondary-text)]">
+            <span>Size</span><span>Money back in 25 years</span><span className="text-right">Payback</span>
+          </div>
+          {rows.map((r) => (
+            <button key={r.size} onClick={() => update({ size: r.size })} aria-pressed={r.size === h.size}
+              className={cn("grid grid-cols-[4rem_1fr_6rem] items-center gap-3 border-l-4 py-1.5 pl-2 text-left hover:bg-[var(--govuk-light-grey)]",
+                r.size === h.size ? "border-[var(--govuk-blue)] bg-[var(--govuk-light-grey)]" : "border-transparent")}>
+              <span className="flex flex-col"><b>{r.size} kW</b>{r.bench && <span className="text-xs text-[var(--govuk-secondary-text)]">govt price</span>}</span>
+              <span className="flex items-center gap-2">
+                <span className="h-4 shrink-0 rounded-r-[3px]" style={{ width: `${(Math.max(0, r.gain) / max) * 50}%`, minWidth: 3, background: r.bench ? "#b1b4b6" : r.gain > 0 ? "#00703c" : "#d4351c" }} />
+                <span className="text-sm whitespace-nowrap tabular-nums">{r.gain >= 0 ? "+" : ""}{lakh(r.gain)}</span>
+                {best?.size === r.size && <span className="govuk-tag govuk-tag--green">Best</span>}
+              </span>
+              <span className="text-right tabular-nums">{r.bench ? "—" : years(r.payback)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

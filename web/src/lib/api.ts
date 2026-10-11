@@ -42,6 +42,9 @@ export type Outcome = {
   emi_month: number | null
   emi_cover: number | null
   monthly: { month: string; units: number; solar_units: number; bill_now: number; bill_with: number }[]
+  cumulative: { year: number; value: number }[] // money in hand by year; year 0 = −what you pay
+  lifetime_gain: number | null
+  loan_cumulative: { year: number; value: number }[] | null // same, fully financed on the scheme loan
 }
 
 export type Answer = {

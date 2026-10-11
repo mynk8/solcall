@@ -1,158 +1,237 @@
 import { useEffect, useState } from "react"
-import { ExternalLink } from "lucide-react"
+import { Copy, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 
-import { CardTitle, Missing, SourceTag, Stat } from "@/components/bits"
+import { CardTitle } from "@/components/bits"
 import { PriceLadder } from "@/components/price-ladder"
+import { BarList, CostSplit, PaybackCurve } from "@/components/proof"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import type { Outcome } from "@/lib/api"
 import { useAnswer, useApp } from "@/lib/app-context"
-import { lakh, rupees } from "@/lib/format"
+import { lakh, rupees, years } from "@/lib/format"
 import { judgeQuote } from "@/lib/quote"
 import { cn } from "@/lib/utils"
 
 const PORTAL = "https://solar.delhi.gov.in"
-const QUOTE_SIZES = [1, 2, 3, 4, 5, 10]
+const SIZES = [1, 2, 3, 4, 5]
 
 export function DealPage() {
   const { household: h, update, navigate, ladders, today } = useApp()
-  const { answer } = useAnswer({ units: h.units, load: h.load, size: h.size })
-  const freeOk = !!answer?.free_eligible
-  const tab = h.dealTab ?? (answer ? (freeOk ? "free" : "paid") : "paid")
+  const size = h.size
+  const load = Math.max(h.load, size)
 
-  const [quoteDraft, setQuoteDraft] = useState(h.quote ? String(h.quote) : "")
+  // fair = priced at the market median; quoted = priced at the installer's quote
+  const { answer: fair } = useAnswer({ units: h.units, load, size })
+  const { answer: quoted } = useAnswer({ units: h.units, load, size, quote: h.quote }, !!h.quote)
+  const priced = h.quote ? quoted : fair
+
+  const [draft, setDraft] = useState(h.quote ? String(h.quote) : "")
   useEffect(() => {
-    const t = setTimeout(() => update({ quote: +quoteDraft >= 10_000 ? +quoteDraft : null }), 300)
+    const t = setTimeout(() => update({ quote: +draft >= 10_000 ? +draft : null }), 350)
     return () => clearTimeout(t)
-  }, [quoteDraft, update])
+  }, [draft, update])
 
-  const ladder = ladders.get(h.quoteSize)
+  const ladder = ladders.get(size)
   const judged = h.quote && ladder ? judgeQuote(h.quote, ladder) : null
-  // the answer for the quoted size at the quoted price, for the subsidy and loan cards
-  const { answer: priced } = useAnswer({ units: h.units, load: Math.max(h.load, h.quoteSize), size: h.quoteSize, quote: h.quote })
+  const rate = today?.rates ? `${today.rates.scheme_loan_pct.toFixed(2)}%` : "the scheme rate"
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-5 px-4 py-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-[2rem] leading-tight font-bold">Get a fair deal</h1>
-        <p className="text-sm text-muted-foreground">
-          For {h.size} kW · {h.units} units/month · {h.load} kW load · {h.disco}{" "}
-          <button className="govuk-link" onClick={() => navigate("check")}>change</button>
+        <p className="text-[var(--govuk-secondary-text)]">
+          {h.units} units a month · {h.load} kW load · {h.disco} · <button className="govuk-link" onClick={() => navigate("check")}>change</button>
         </p>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => update({ dealTab: v as "paid" | "free" })} className="flex flex-col gap-4">
-        <TabsList>
-          <TabsTrigger value="paid">Paid route (installer + subsidy)</TabsTrigger>
-          <TabsTrigger value="free">Free route{freeOk ? " · you qualify" : ""}</TabsTrigger>
-        </TabsList>
+      {fair?.free_eligible && (
+        <div className="govuk-inset flex flex-wrap items-center gap-3 border-[var(--govuk-blue)] bg-[#bbd4ea]/30">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <b>You may get this free</b>
+            <span>Homes using up to 400 units with a load up to 3 kW qualify. The scheme isn't open yet.</span>
+          </div>
+          <Button variant="secondary" onClick={() => navigate("alerts")}>Tell me when it opens</Button>
+        </div>
+      )}
 
-        <TabsContent value="paid" className="flex flex-col gap-4">
-          <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-            <div className="flex flex-col gap-3 rounded-[2px] border bg-white p-5">
-              <CardTitle source="Compared with the Delhi reference price">Check an installer's quote</CardTitle>
-              <div className="flex flex-wrap items-end gap-3">
-                <label className="flex min-w-40 flex-1 flex-col gap-1.5 text-sm text-muted-foreground">
-                  Quote before subsidy (₹)
-                  <Input inputMode="numeric" placeholder="e.g. 240000" value={quoteDraft} onChange={(e) => setQuoteDraft(e.target.value.replace(/\D/g, ""))} />
-                </label>
-                <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
-                  Size
-                  <ToggleGroup type="single" size="sm" variant="outline" value={String(h.quoteSize)} onValueChange={(v) => v && update({ quoteSize: +v })}>
-                    {QUOTE_SIZES.map((k) => <ToggleGroupItem key={k} value={String(k)}>{k}</ToggleGroupItem>)}
-                  </ToggleGroup>
-                </div>
-              </div>
-              <div className="border p-4">
-                <span className="text-sm text-muted-foreground">Price ladder for {h.quoteSize} kW{h.quote ? ", with your quote in red" : ""}</span>
-                {ladder ? <PriceLadder ladder={ladder} quote={h.quote} /> : <Skeleton className="h-12" />}
-              </div>
-              {judged ? (
-                <div className={cn("govuk-inset flex flex-col gap-1.5",
-                  judged.tone === "good" ? "border-[var(--govuk-green)] bg-[#cce2d8]/40" : judged.tone === "warn" ? "border-[var(--govuk-orange)] bg-[#fcd6c3]/30" : "border-[var(--govuk-red)] bg-[#f4cdc6]/40")}>
-                  <b>{judged.text}</b>
-                  {judged.askFor && (
-                    <button className="self-start govuk-link" onClick={async () => {
-                      const msg = `Hi, for a ${h.quoteSize} kW rooftop system in Delhi the typical market price is ${lakh(judged.askFor)} before subsidy. Can you match ${lakh(judged.askFor)}?`
-                      try { await navigator.clipboard.writeText(msg); toast("Message copied") } catch { toast.error("Couldn't copy") }
-                    }}>Copy message for installer</button>
-                  )}
-                </div>
-              ) : <p className="text-sm text-muted-foreground">Enter a quote to see where it sits.</p>}
-            </div>
+      {/* 1 · Is the quote fair? */}
+      <section className="flex flex-col gap-4 border bg-white p-5">
+        <CardTitle>1. Is your quote fair?</CardTitle>
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="flex min-w-48 flex-1 flex-col gap-1.5">
+            <span className="text-[var(--govuk-secondary-text)]">Installer's quote, before subsidy (₹)</span>
+            <Input inputMode="numeric" placeholder="e.g. 240000" value={draft} onChange={(e) => setDraft(e.target.value.replace(/\D/g, ""))} className="h-10 text-base" />
+          </label>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[var(--govuk-secondary-text)]">System size</span>
+            <ToggleGroup type="single" size="sm" variant="outline" value={String(size)} onValueChange={(v) => v && update({ size: +v, load: Math.max(h.load, +v) })}>
+              {SIZES.map((k) => <ToggleGroupItem key={k} value={String(k)}>{k} kW</ToggleGroupItem>)}
+            </ToggleGroup>
+          </div>
+        </div>
 
-            <div className="flex min-w-0 flex-col gap-4">
-              <div className="flex flex-col gap-3 rounded-[2px] border bg-white p-5">
-                <CardTitle source="RBI repo rate + 0.50%, under PM Surya Ghar">Loan (scheme rate)</CardTitle>
-                {h.quoteSize <= 3 ? (
-                  priced ? (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <Stat k="Rate" v={today?.rates ? `${today.rates.scheme_loan_pct.toFixed(2)}%` : "…"} />
-                        <Stat k="EMI, 10 yrs" v={priced.paid.emi_month ? `${rupees(priced.paid.emi_month)}/mo` : "₹0"} />
-                      </div>
-                      {priced.paid.emi_cover && <span className="text-sm">Your saving covers the EMI <b>{priced.paid.emi_cover.toFixed(1)}×</b>.</span>}
-                    </>
-                  ) : <Skeleton className="h-20" />
-                ) : (
-                  <p className="govuk-inset border-[var(--govuk-orange)] bg-[#fcd6c3]/30 text-sm">The scheme loan rate applies up to 3 kW. Above that, use a normal bank loan or cash.</p>
-                )}
-              </div>
-              <div className="flex flex-col gap-3 rounded-[2px] border bg-white p-5">
-                <CardTitle source="Central (PM Surya Ghar) and Delhi subsidy">Subsidy you'll get back</CardTitle>
-                {priced ? (
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div className="flex flex-col"><span className="text-sm text-muted-foreground">Central</span><b className="tabular-nums">{rupees(priced.paid.central_subsidy)}</b></div>
-                    <div className="flex flex-col"><span className="text-sm text-muted-foreground">Delhi</span><b className="tabular-nums">{rupees(priced.paid.delhi_subsidy)}</b></div>
-                    <div className="flex flex-col"><span className="text-sm text-muted-foreground">You pay</span><b className="tabular-nums">{rupees(priced.paid.you_pay)}</b></div>
-                  </div>
-                ) : <Skeleton className="h-12" />}
-                {priced && <SourceTag tier="govt">at {lakh(priced.paid.price)} · {priced.price_basis}</SourceTag>}
-              </div>
-            </div>
-          </div>
+        {ladder ? <PriceLadder ladder={ladder} quote={h.quote} /> : <Skeleton className="h-24" />}
 
-          <div className="flex flex-col gap-3 rounded-[2px] border bg-white p-5">
-            <h2 className="text-lg font-bold">Registered vendors</h2>
-            <Missing what="registered vendor list">Empanelled installers for {h.disco} (name, rating, DCR panels, phone). Until then, use the portal's vendor list.</Missing>
+        {judged ? (
+          <div className={cn("govuk-inset flex flex-col gap-1.5",
+            judged.tone === "good" ? "border-[var(--govuk-green)] bg-[#cce2d8]/40" : judged.tone === "warn" ? "border-[var(--govuk-orange)] bg-[#fcd6c3]/30" : "border-[var(--govuk-red)] bg-[#f4cdc6]/40")}>
+            <b>{judged.text}</b>
+            {judged.askFor && (
+              <button className="govuk-link flex items-center gap-1 self-start" onClick={async () => {
+                const msg = `Hi, for a ${size} kW rooftop system in Delhi the typical market price is ${lakh(judged.askFor)} before subsidy. Can you match ${lakh(judged.askFor)}?`
+                try { await navigator.clipboard.writeText(msg); toast("Message copied") } catch { toast.error("Couldn't copy") }
+              }}><Copy className="size-4" />Copy a message for the installer</button>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild><a href={PORTAL} target="_blank" rel="noopener noreferrer">Apply on the Delhi Solar Portal <ExternalLink /></a></Button>
-            <Button variant="outline" onClick={() => navigate("alerts")}>Alert me if prices drop</Button>
-          </div>
-        </TabsContent>
+        ) : (
+          <p className="text-[var(--govuk-secondary-text)]">Enter a quote to see where it sits against Delhi prices.</p>
+        )}
 
-        <TabsContent value="free" className="flex flex-col gap-4">
-          {answer ? (
-            freeOk
-              ? <p className="govuk-inset border-[var(--govuk-blue)] bg-[#bbd4ea]/30">You qualify: average use ≤ 400 units a month and system ≤ 3 kW.</p>
-              : <p className="govuk-inset border-[var(--govuk-orange)] bg-[#fcd6c3]/30 text-sm">You don't qualify (needs ≤ 400 units a month and ≤ 3 kW). <button className="underline" onClick={() => update({ dealTab: "paid" })}>See the paid route</button></p>
-          ) : <Skeleton className="h-10" />}
-          {answer && !answer.free_operational && (
-            <p className="flex items-center gap-2 govuk-inset border-[var(--govuk-orange)] bg-[#fcd6c3]/30 text-sm">The free scheme isn't open yet. We'll tell you when it opens. <SourceTag tier="verify">VERIFY</SourceTag></p>
-          )}
-          <div className="flex flex-col gap-3 rounded-[2px] border bg-white p-5">
-            <h2 className="text-lg font-bold">How to apply (3 steps)</h2>
-            {[
-              ["1. Register on the Delhi Solar Portal", "With your electricity account number and a recent bill."],
-              ["2. DISCOM site check", "Your DISCOM confirms the roof and your sanctioned load."],
-              ["3. Installation and net meter", "The installer fits the system; the DISCOM installs the net meter."],
-            ].map(([t, d]) => (
-              <div key={t} className="flex flex-col gap-0.5 bg-[var(--govuk-light-grey)] p-4">
-                <b className="text-sm">{t}</b><span className="text-sm text-muted-foreground">{d}</span>
-              </div>
-            ))}
-            <Missing what="free-scheme step details">Official step list, documents needed and timelines once the scheme opens.</Missing>
+        {/* what overpaying does: same home, fair price vs this quote */}
+        {h.quote && fair && quoted && quoted.paid.you_pay !== fair.paid.you_pay && (
+          <QuoteImpact fair={fair.paid} quoted={quoted.paid} quote={h.quote} />
+        )}
+
+        {priced && priced.paid.price > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <span className="font-semibold">Who pays the {lakh(priced.paid.price)}</span>
+            <CostSplit price={priced.paid.price} central={priced.paid.central_subsidy} delhi={priced.paid.delhi_subsidy} youPay={priced.paid.you_pay} />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild><a href={PORTAL} target="_blank" rel="noopener noreferrer">Go to the Delhi Solar Portal <ExternalLink /></a></Button>
-            <Button variant="outline" onClick={() => navigate("alerts")}>Notify me when it opens</Button>
+        )}
+      </section>
+
+      {/* 2 · Cash or loan? */}
+      <section className="flex flex-col gap-4 border bg-white p-5">
+        <CardTitle>2. Pay cash or take the loan?</CardTitle>
+        {!priced ? <Skeleton className="h-56" /> : priced.paid.you_pay === 0 ? (
+          <p>The subsidies cover the whole price, so there's nothing to pay or borrow.</p>
+        ) : !priced.loan_applies || !priced.paid.loan_cumulative ? (
+          <p>The {rate} scheme loan is for systems up to 3 kW. For {size} kW, compare a bank loan with paying {rupees(priced.paid.you_pay)} in cash.</p>
+        ) : (
+          <CashOrLoan o={priced.paid} rate={rate} />
+        )}
+      </section>
+
+      {/* 3 · Next steps */}
+      <section className="flex flex-col gap-4 border bg-white p-5">
+        <CardTitle>3. Next steps</CardTitle>
+        <ol className="flex flex-col gap-4">
+          <Step n={1} title="Get two or three quotes">
+            <span className="text-[var(--govuk-secondary-text)]">From installers registered with {h.disco}. Check each one above.</span>
+          </Step>
+          <Step n={2} title="Apply on the Delhi Solar Portal">
+            <span className="text-[var(--govuk-secondary-text)]">With your electricity account number. Subsidy is claimed through the portal.</span>
+            <Button asChild className="self-start"><a href={PORTAL} target="_blank" rel="noopener noreferrer">Apply on the portal <ExternalLink /></a></Button>
+          </Step>
+          <Step n={3} title="Watch for price and rate changes">
+            <span className="text-[var(--govuk-secondary-text)]">We'll tell you if prices for {size} kW drop or the loan rate changes.</span>
+            <Button variant="secondary" className="self-start" onClick={() => navigate("alerts")}>Set up alerts</Button>
+          </Step>
+        </ol>
+      </section>
+    </div>
+  )
+}
+
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <li className="grid grid-cols-[2rem_1fr] gap-3">
+      <span className="grid size-8 place-items-center rounded-full bg-[var(--govuk-blue)] font-bold text-white">{n}</span>
+      <div className="flex flex-col gap-1.5"><b>{title}</b>{children}</div>
+    </li>
+  )
+}
+
+/** Same home at the fair price and at this quote, on the three numbers the quote changes. */
+function QuoteImpact({ fair, quoted, quote }: { fair: Outcome; quoted: Outcome; quote: number }) {
+  const over = quote > fair.price
+  const mine = over ? "#d4351c" : "#1d70b8"
+  const pair = (f: number, q: number, show: (v: number) => string) => [
+    { label: "Fair price", value: Math.max(0, f), display: show(f), color: "#00703c" },
+    { label: "Your quote", value: Math.max(0, q), display: show(q), color: mine },
+  ]
+  const groups = [
+    { title: "You pay after subsidy", rows: pair(fair.you_pay, quoted.you_pay, rupees) },
+    { title: "Years to pay back", rows: pair(fair.payback_years ?? 0, quoted.payback_years ?? 0, (v) => (v ? v.toFixed(1) : "never")) },
+    { title: "Gain over 25 years", rows: pair(fair.lifetime_gain ?? 0, quoted.lifetime_gain ?? 0, (v) => lakh(v)) },
+  ]
+  return (
+    <div className="flex flex-col gap-3">
+      <span className="font-semibold">
+        What {over ? "the extra" : "saving"} <span style={{ color: mine }}>{rupees(Math.abs(quote - fair.price))}</span> does
+      </span>
+      <div className="grid gap-x-6 gap-y-4 md:grid-cols-3">
+        {groups.map((g) => (
+          <div key={g.title} className="flex flex-col gap-1.5">
+            <span className="text-sm text-[var(--govuk-secondary-text)]">{g.title}</span>
+            <BarList size="lg" labelWidth="5.5rem" rows={g.rows} />
           </div>
-        </TabsContent>
-      </Tabs>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CashOrLoan({ o, rate }: { o: Outcome; rate: string }) {
+  const loan = o.loan_cumulative!
+  const cashEnd = o.cumulative[o.cumulative.length - 1].value
+  const loanEnd = loan[loan.length - 1].value
+  const saving = o.saving_year1 / 12
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Option title="Cash" color="var(--govuk-green)" figures={[
+          { label: "Up front", value: rupees(o.you_pay) },
+          { label: "Monthly", value: "₹0" },
+          { label: "Paid back", value: years(o.payback_years) },
+        ]} />
+        <Option title={`Loan at ${rate}`} color="var(--govuk-blue)" figures={[
+          { label: "Up front", value: "₹0" },
+          { label: "EMI, 10 years", value: rupees(o.emi_month) },
+          { label: "Interest", value: rupees(cashEnd - loanEnd) },
+        ]} />
+      </div>
+      <PaybackCurve className="h-48" series={[
+        { key: "cash", label: "Cash", color: "#00703c", points: o.cumulative },
+        { key: "loan", label: "Loan", color: "#1d70b8", points: loan },
+      ]} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <span className="font-semibold">In hand after 25 years</span>
+          <BarList labelWidth="3.5rem" rows={[
+            { label: "Cash", value: Math.max(0, cashEnd), display: lakh(cashEnd), color: "#00703c" },
+            { label: "Loan", value: Math.max(0, loanEnd), display: lakh(loanEnd), color: "#1d70b8" },
+          ]} />
+        </div>
+        {o.emi_month ? (
+          <div className="flex flex-col gap-1.5">
+            <span className="font-semibold">Each month while the loan runs</span>
+            <BarList labelWidth="3.5rem" rows={[
+              { label: "Saving", value: saving, display: rupees(saving), color: "#00703c" },
+              { label: "EMI", value: o.emi_month, display: rupees(o.emi_month), color: "#b1b4b6" },
+            ]} />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function Option({ title, color, figures }: { title: string; color: string; figures: { label: string; value: string }[] }) {
+  return (
+    <div className="flex flex-col gap-2 border-t-4 bg-[var(--govuk-light-grey)] p-3" style={{ borderColor: color }}>
+      <b>{title}</b>
+      <div className="grid grid-cols-3 gap-2">
+        {figures.map((f) => (
+          <div key={f.label} className="flex min-w-0 flex-col">
+            <span className="text-xs text-[var(--govuk-secondary-text)]">{f.label}</span>
+            <b className="tabular-nums">{f.value}</b>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

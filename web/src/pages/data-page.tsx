@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-import { Missing, SourceTag, type Tier } from "@/components/bits"
+import { SourceTag, type Tier } from "@/components/bits"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
@@ -77,7 +77,6 @@ function FeedSheet({ feed, onClose }: { feed: Feed | null; onClose: () => void }
               <div className="flex flex-col gap-1"><b>Fields</b><span className="text-muted-foreground">{feed.fields}</span></div>
               <div className="flex flex-col gap-1"><b>Endpoint</b><code className="rounded bg-muted px-2 py-1 text-sm">{feed.href}</code></div>
               <div className="flex flex-col gap-1"><b>Sample</b><pre className="max-h-64 overflow-auto rounded-lg bg-muted p-2 text-[11px] whitespace-pre-wrap">{sample || "Loading…"}</pre></div>
-              <Missing what="per-feed last-updated timestamp">Each feed should report when it was last scraped or rebuilt.</Missing>
             </div>
             <SheetFooter className="flex-row border-t">
               <Button asChild className="flex-1"><a href={feed.href} target="_blank" rel="noopener noreferrer">Open {feed.kind}</a></Button>

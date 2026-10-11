@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 
-import { Missing, SourceTag } from "@/components/bits"
+import { SourceTag } from "@/components/bits"
 import { ScopeFilter } from "@/components/scope-filter"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -48,7 +48,7 @@ export function ChangelogPage() {
         <ScopeFilter />
       </div>
       {scope !== "Everywhere" && scope !== "BRPL" && (filter === "All" || filter === "Surcharge") && (
-        <Missing what={`${scope} surcharge orders`}>Only BRPL's surcharge page is scraped so far.</Missing>
+        <p className="text-[var(--govuk-secondary-text)]">Surcharge orders are shown for BRPL only for now.</p>
       )}
       {!items && <Skeleton className="h-40" />}
       <ol className="ml-1.5 flex flex-col gap-3 border-l-2 pl-5">
