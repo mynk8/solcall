@@ -1,0 +1,212 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/public-sans";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Public Sans Variable', 'Public Sans', Arial, sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    --background: #ffffff;
+    --foreground: #0b0c0c;
+    --card: #ffffff;
+    --card-foreground: #0b0c0c;
+    --popover: #ffffff;
+    --popover-foreground: #0b0c0c;
+    --primary: #1d70b8;
+    --primary-foreground: #ffffff;
+    --secondary: #f3f2f1;
+    --secondary-foreground: #0b0c0c;
+    --muted: #f3f2f1;
+    --muted-foreground: #505a5f;
+    --accent: #f3f2f1;
+    --accent-foreground: #0b0c0c;
+    --destructive: #d4351c;
+    --border: #b1b4b6;
+    --input: #0b0c0c;
+    --ring: #ffdd00;
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --radius: 0.3rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+    --background: #151515;
+    --foreground: #ececea;
+    --card: #1d1d1c;
+    --card-foreground: #ececea;
+    --popover: #1d1d1c;
+    --popover-foreground: #ececea;
+    --primary: #7da2ff;
+    --primary-foreground: #151515;
+    --secondary: #272725;
+    --secondary-foreground: #ececea;
+    --muted: #272725;
+    --muted-foreground: #9d9d97;
+    --accent: #272725;
+    --accent-foreground: #ececea;
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: #3d3d3a;
+    --input: #3d3d3a;
+    --ring: #7da2ff;
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+    }
+  html {
+    @apply font-sans;
+    }
+  .maplibregl-popup-content {
+    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+    }
+  .maplibregl-popup-tip {
+    @apply hidden!;
+    }
+  .maplibregl-ctrl-attrib {
+    @apply bg-background! text-muted-foreground! border-border! rounded-md! border! shadow-sm!;
+    }
+  .maplibregl-ctrl-attrib a {
+    @apply text-muted-foreground!;
+    }
+  .maplibregl-ctrl-attrib a:hover {
+    @apply text-foreground!;
+    }
+  .maplibregl-ctrl-attrib-button {
+    @apply bg-transparent! dark:invert;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   GOV.UK Design System patterns (design-system.service.gov.uk), adapted.
+   --------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+  --govuk-blue: #1d70b8;
+  --govuk-dark-blue: #003078;
+  --govuk-green: #00703c;
+  --govuk-green-dark: #005a30;
+  --govuk-red: #d4351c;
+  --govuk-yellow: #ffdd00;
+  --govuk-orange: #f47738;
+  --govuk-turquoise: #28a197;
+  --govuk-purple: #4c2c92;
+  --govuk-mid-grey: #b1b4b6;
+  --govuk-light-grey: #f3f2f1;
+  --govuk-secondary-text: #505a5f;
+}
+
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+body { line-height: 1.5; }
+
+/* Links: underlined, thicker on hover, yellow focus block */
+.govuk-link {
+  color: var(--govuk-blue);
+  text-decoration: underline;
+  text-decoration-thickness: max(1px, .0625rem);
+  text-underline-offset: .15em;
+  cursor: pointer;
+}
+.govuk-link:hover { color: var(--govuk-dark-blue); text-decoration-thickness: max(3px, .1875rem); }
+
+/* Focus: yellow with a dark bottom bar, the GOV.UK signature */
+:where(a, button, [role="tab"], [role="button"], summary):focus-visible {
+  outline: 3px solid transparent;
+  background-color: var(--govuk-yellow) !important;
+  color: #0b0c0c !important;
+  box-shadow: 0 -2px var(--govuk-yellow), 0 4px #0b0c0c;
+  text-decoration: none;
+}
+:where(input, select, textarea, [data-slot="select-trigger"]):focus-visible {
+  outline: 3px solid var(--govuk-yellow) !important;
+  outline-offset: 0;
+  box-shadow: inset 0 0 0 2px #0b0c0c !important;
+}
+
+/* Tags (sentence case, tinted) */
+.govuk-tag { display: inline-flex; align-items: center; padding: 2px 8px; font-size: .875rem; font-weight: 600; line-height: 1.4; white-space: nowrap; border-radius: 2px; }
+.govuk-tag--green { background: #cce2d8; color: #005a30; }
+.govuk-tag--blue { background: #bbd4ea; color: #0c2d4a; }
+.govuk-tag--yellow { background: #fff7bf; color: #594d00; }
+.govuk-tag--red { background: #f4cdc6; color: #2a0b06; }
+.govuk-tag--grey { background: #e5e6e7; color: #282d30; }
+.govuk-tag--orange { background: #fcd6c3; color: #6e3619; }
+
+/* Inset text: a grey bar on the left for notes and placeholders */
+.govuk-inset { border-left: 5px solid var(--govuk-mid-grey); padding: .75rem 1rem; }
+
+/* Notification banner: blue top bar */
+.govuk-banner { border: 5px solid var(--govuk-blue); border-top-width: 2rem; background: #fff; padding: .75rem 1rem; }

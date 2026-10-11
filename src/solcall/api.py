@@ -35,6 +35,10 @@ app = FastAPI(
 engine = SolarMathEngine()
 delivery_service = ScraperDeliveryService(data_dir=DATA_DIR, out_dir=OUT_DIR)
 
+# Endpoints for the consumer web app (web/)
+from solcall.web_api import router as web_router  # noqa: E402
+app.include_router(web_router)
+
 # Mount static web directory
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
