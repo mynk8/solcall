@@ -1,3 +1,5 @@
+website: https://main.d146dfi7774v0.amplifyapp.com/
+
 # SolCall — Delhi Rooftop Solar Reference Price & Household Decision Engine
 
 > **Track 03:** Waste and Energy (Rooftop Solar)  
