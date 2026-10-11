@@ -1,0 +1,21 @@
+# Generated artifacts (data/raw, out/) and caches
+data/raw/*.csv
+data/raw/*.html
+data/raw/*.json
+out/*.json
+out/*.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.mypy_cache/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
