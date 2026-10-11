@@ -17,6 +17,7 @@ COPY src /app/src
 COPY data /app/data
 COPY static /app/static
 COPY run_layer3.py /app/
+COPY scripts/start_api.py /app/scripts/start_api.py
 
 # Pre-generate Layer 3 feeds at build time
 RUN python /app/run_layer3.py
@@ -33,4 +34,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
 # Launch production server via Uvicorn
-CMD ["uvicorn", "solcall.api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "/app/scripts/start_api.py"]

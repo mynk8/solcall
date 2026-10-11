@@ -4,6 +4,9 @@
 > **Event:** Environmental Hacks (Bharat Builds Tour, event 02, WeMakeDevs)  
 > **Deployment:** AWS ECS (Elastic Container Service) with Docker & Fargate  
 
+Deploy the current React site, API, and data with `./deploy-aws.sh` or `.\deploy-aws.ps1` in PowerShell.
+See [DEPLOY.md](DEPLOY.md) for the Amplify, ECS Express Mode, and S3 deployment steps.
+
 ---
 
 ## 1. Overview & Problem Statement

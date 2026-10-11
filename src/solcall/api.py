@@ -5,6 +5,7 @@ Exposes health checks and Layer 3 mathematical evaluations for ECS ALB / Target 
 
 from __future__ import annotations
 import json
+import os
 from pathlib import Path
 from typing import Optional, List, Union
 from fastapi import FastAPI, Query
@@ -67,6 +68,7 @@ def health_check() -> dict:
         "service": "solcall-layer3-engine",
         "container": "aws-ecs-fargate",
         "multiplier_m": engine.tariff.fitted_multiplier,
+        "release": os.environ.get("SOLCALL_RELEASE", "local"),
     }
 
 

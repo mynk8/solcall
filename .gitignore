@@ -24,3 +24,10 @@ Thumbs.db
 .venv/
 web/node_modules/
 web/dist/
+
+# AWS credentials and deployment artifacts
+.aws
+.aws/
+.env
+.env.*
+.deploy/
