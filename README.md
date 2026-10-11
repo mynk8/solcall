@@ -46,59 +46,63 @@ d:\solcall\src\solcall\
 
 All monetary amounts in these formulas are in Indian rupees.
 
-1. **Bill Model (Pre-subsidy):**
+#### 1. Bill Model (Pre-subsidy)
 
-   ```math
-   \begin{aligned}
-   E(u) &= \sum \text{slab\_rate} \times u_{\text{slab}} \\
-   F(L) &= \text{band\_rate}(L) \times L \\
-   m &= \text{mean}\left(\frac{\text{bill}_{\text{calib}}}{E(u) + F(L)}\right) \approx 1.3696 \\
-   \text{Bill}(u, L) &= m \times (E(u) + F(L))
-   \end{aligned}
-   ```
+$$
+\begin{aligned}
+E(u) &= \sum \text{slab\_rate} \times u_{\text{slab}} \\
+F(L) &= \text{band\_rate}(L) \times L \\
+m &= \text{mean}\left(\frac{\text{bill}_{\text{calib}}}{E(u) + F(L)}\right) \approx 1.3696 \\
+\text{Bill}(u, L) &= m \times (E(u) + F(L))
+\end{aligned}
+$$
 
-2. **Delhi Power Subsidy (Gross basis → Net bill):**
-   - If $`\text{gross} \le 200`$: $`\text{subsidy} = \text{net\_bill} \implies \text{payable} = 0`$.
-   - If $`200 < \text{gross} \le 400`$: $`\text{subsidy} = \min(0.5 \times \text{Bill}(\text{gross}, L), 800, \text{net\_bill})`$.
-   - If $`\text{gross} > 400`$: $`\text{subsidy} = 0 \implies \text{payable} = \text{net\_bill}`$.
+#### 2. Delhi Power Subsidy (Gross basis → Net bill)
 
-3. **Solar PV Generation:**
+- If $`\text{gross} \le 200`$: $`\text{subsidy} = \text{net\_bill} \implies \text{payable} = 0`$.
+- If $`200 < \text{gross} \le 400`$: $`\text{subsidy} = \min(0.5 \times \text{Bill}(\text{gross}, L), 800, \text{net\_bill})`$.
+- If $`\text{gross} > 400`$: $`\text{subsidy} = 0 \implies \text{payable} = \text{net\_bill}`$.
 
-   ```math
-   \begin{aligned}
-   \text{annual} &= 1466 \times (1 - 0.05) \approx 1392.70 \text{ kWh/kWp/yr} \\
-   g_m(k, t) &= k \times \text{annual} \times \text{share}_m \times (1 - 0.005)^{t-1} \quad (m \in \text{Apr..Mar})
-   \end{aligned}
-   ```
+#### 3. Solar PV Generation
 
-4. **Net-Metering Year Simulation:**
-   - Monthly netting with carry-forward energy banking across April..March.
-   - Year-end surplus payout: $`\text{bank} \times \text{surplus\_rate}`$ (₹3.50 conservative, ₹6.50 policy).
-   - Under-200 incentive: $`0.5 \times \sum \min(c_m, g_m) \times 3`$ if average gross $`\le 200`$.
+$$
+\begin{aligned}
+\text{annual} &= 1466 \times (1 - 0.05) \approx 1392.70 \text{ kWh/kWp/yr} \\
+g_m(k, t) &= k \times \text{annual} \times \text{share}_m \times (1 - 0.005)^{t-1} \quad (m \in \text{Apr..Mar})
+\end{aligned}
+$$
 
-5. **Capital Subsidies & Cost:**
+#### 4. Net-Metering Year Simulation
 
-   ```math
-   \begin{aligned}
-   \text{central}(k) &= 30000 \min(k, 2) + 18000 \min(\max(k-2, 0), 1) \le 78{,}000 \\
-   \text{delhi}(k, P) &= \max(0, \min(26000 \min(k, 3), 78000, P - \text{central}(k))) \\
-   \text{net\_cost} &= 0 \text{ (free route)} \quad \text{or} \quad \max(0, P - \text{central} - \text{delhi})
-   \end{aligned}
-   ```
+- Monthly netting with carry-forward energy banking across April..March.
+- Year-end surplus payout: $`\text{bank} \times \text{surplus\_rate}`$ (₹3.50 conservative, ₹6.50 policy).
+- Under-200 incentive: $`0.5 \times \sum \min(c_m, g_m) \times 3`$ if average gross $`\le 200`$.
 
-6. **25-Year Financial Metrics:**
-   - $`\text{NPV} = -\text{net\_cost} + \sum_{t=1}^{25} \frac{\text{flow}_t}{(1+r)^t}`$
-   - $`\text{LCOE} = \frac{\text{net\_cost} + \sum \frac{\text{other\_cost}_t}{(1+r)^t}}{\sum \frac{\text{gen}_t}{(1+r)^t}}`$
-   - $`\text{Spread} = \frac{\text{saving}_1}{\text{gen}_1} - \text{LCOE}`$
-   - $`\text{EMI} = P \frac{i(1+i)^n}{(1+i)^n - 1}`$ for 10-year loan on systems $`\le 3\text{ kW}`$
-   - $`\text{DSCR} = \frac{\text{saving}_1 / 12}{\text{EMI}}`$
+#### 5. Capital Subsidies & Cost
 
-7. **Verdict Logic:**
-   - $`\text{saving}_1 \le 0 \implies \mathbf{NOT\_WORTH}`$
-   - $`\text{free route} \implies \mathbf{GO\_FREE}`$
-   - $`\text{spread} \ge 1 \land \text{disc. payback} \le 7 \land (\text{DSCR} \ge 1.2 \lor \text{no loan}) \implies \mathbf{GO}`$
-   - $`\text{NPV} > 0 \implies \mathbf{MARGINAL}`$
-   - Else $`\implies \mathbf{NOT\_WORTH}`$
+$$
+\begin{aligned}
+\text{central}(k) &= 30000 \min(k, 2) + 18000 \min(\max(k-2, 0), 1) \le 78{,}000 \\
+\text{delhi}(k, P) &= \max(0, \min(26000 \min(k, 3), 78000, P - \text{central}(k))) \\
+\text{net\_cost} &= 0 \text{ (free route)} \quad \text{or} \quad \max(0, P - \text{central} - \text{delhi})
+\end{aligned}
+$$
+
+#### 6. 25-Year Financial Metrics
+
+- $`\text{NPV} = -\text{net\_cost} + \sum_{t=1}^{25} \frac{\text{flow}_t}{(1+r)^t}`$
+- $`\text{LCOE} = \frac{\text{net\_cost} + \sum \frac{\text{other\_cost}_t}{(1+r)^t}}{\sum \frac{\text{gen}_t}{(1+r)^t}}`$
+- $`\text{Spread} = \frac{\text{saving}_1}{\text{gen}_1} - \text{LCOE}`$
+- $`\text{EMI} = P \frac{i(1+i)^n}{(1+i)^n - 1}`$ for 10-year loan on systems $`\le 3\text{ kW}`$
+- $`\text{DSCR} = \frac{\text{saving}_1 / 12}{\text{EMI}}`$
+
+#### 7. Verdict Logic
+
+- $`\text{saving}_1 \le 0 \implies \mathbf{NOT\_WORTH}`$
+- $`\text{free route} \implies \mathbf{GO\_FREE}`$
+- $`\text{spread} \ge 1 \land \text{disc. payback} \le 7 \land (\text{DSCR} \ge 1.2 \lor \text{no loan}) \implies \mathbf{GO}`$
+- $`\text{NPV} > 0 \implies \mathbf{MARGINAL}`$
+- Else $`\implies \mathbf{NOT\_WORTH}`$
 
 ---
 
