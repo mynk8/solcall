@@ -46,7 +46,7 @@ Every gap renders as a dashed "placeholder · …" box (`<Missing>` in code) or 
 | 1 | Roof data | Map (all pins), roof sheet | Real roof feed: id, lat/lon, locality, DISCOM, division, fits kW, shade (`src/lib/roofs.ts` has the contract + 7 sample roofs) |
 | 2 | Address / locality search | Ctrl K, map search | Geocoder; today it matches sample roof names only |
 | 3 | Roof → division mapping | Roof sheet "Your division" | Division for each roof (only 2 sample roofs have one) |
-| 4 | Division boundaries | Map applications layer, DISCOM sheet | Division shapes or centroids; circles are per DISCOM at approximate centres |
+| 4 | Division boundaries | Map applications layer, DISCOM sheet | Division shapes or centroids; circles are per DISCOM at approximate centres, coloured on the applications scale |
 | 5 | Change since last snapshot | DISCOM sheet, Records | Keep the previous applications snapshot ("+n this week") |
 | 6 | BYPL / TPDDL surcharge | Reference KPI + Surcharge tab, Changelog (when scoped) | Scrapers for BYPL and TPDDL surcharge pages |
 | 7 | Annotated sample bill | Check → "Where do I find these?" | Image of a Delhi bill with units and sanctioned load circled |
@@ -56,3 +56,4 @@ Every gap renders as a dashed "placeholder · …" box (`<Missing>` in code) or 
 | 11 | Alert delivery | My alerts | Subscription store + WhatsApp sender (stored in the browser today) |
 | 12 | Surcharge impact `[₹X]`, `[₹Y]` | Alert message preview | Bill model that applies surcharge month by month |
 | 13 | Per-feed last-updated time | Data → feed sheet | Each feed reporting when it was last scraped/rebuilt |
+| 14 | Area-level prices | Roof sheet → Price by system size | Installer prices per locality; the curve is Delhi-wide today |

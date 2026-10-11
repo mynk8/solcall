@@ -3,7 +3,8 @@ import { Search } from "lucide-react"
 import { toast } from "sonner"
 
 import { CardTitle, Missing, VerdictPill } from "@/components/bits"
-import { PriceLadder } from "@/components/price-ladder"
+import { MapLegend, blend } from "@/components/map-legend"
+import { PriceCurve } from "@/components/price-curve"
 import { ScopeFilter } from "@/components/scope-filter"
 import { Button } from "@/components/ui/button"
 import { Map as MapView, MapControls, MapMarker, MarkerContent, MarkerTooltip, useMap } from "@/components/ui/map"
@@ -20,7 +21,7 @@ import { cn } from "@/lib/utils"
 const DELHI: [number, number] = [77.15, 28.64]
 
 export function MapPage() {
-  const { household, navigate, update, scope, setScope, openCommand } = useApp()
+  const { household, navigate, update, scope, setScope, openCommand, today } = useApp()
   const [layer, setLayer] = useState<"fit" | "apps">("fit")
   const [sheet, setSheet] = useState<{ kind: "roof" } | { kind: "discom"; id: Discom } | null>(household.roof ? { kind: "roof" } : null)
   const roof = useMemo(() => SAMPLE_ROOFS.find((r) => r.id === household.roof) ?? null, [household.roof])
@@ -62,24 +63,23 @@ export function MapPage() {
         <ScopeFilter compact />
       </div>
 
-      {/* legend */}
-      <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1 rounded-[2px] border bg-white px-3 py-2 text-sm shadow-lg">
-        <b>Legend</b>
-        {layer === "fit" ? (
-          <span className="flex flex-wrap gap-x-3 text-muted-foreground">
-            <span><i className="mr-1 inline-block size-3 bg-[var(--govuk-green)]" />good fit</span>
-            <span><i className="mr-1 inline-block size-3 bg-[var(--govuk-orange)]" />some shade</span>
-            <span><i className="mr-1 inline-block size-3 bg-[var(--govuk-secondary-text)]" />poor</span>
-          </span>
-        ) : (
-          <span className="text-muted-foreground">Circle size = homes that have applied</span>
-        )}
-      </div>
+      {layer === "fit" ? (
+        <MapLegend title="Solar fit" items={[
+          { color: "#00703c", label: "Good fit, no shade" },
+          { color: "#f47738", label: "Some shade" },
+          { color: "#505a5f", label: "Poor fit, heavy shade" },
+          { color: "#1d70b8", label: "Selected roof" },
+        ]} />
+      ) : (
+        <MapLegend title="Applications" scale={{ ...APPS_SCALE, ...appsRange(today) }} />
+      )}
 
       {/* hint */}
       <div className="absolute top-3 right-3 z-10 hidden max-w-60 flex-col gap-1 rounded-[2px] border bg-white px-3 py-2 text-sm shadow-lg sm:flex">
         <span>{layer === "fit" ? "Click a roof to see what fits and what it costs." : "Click a DISCOM for its application count."}</span>
-        <span className="text-sm text-[var(--govuk-secondary-text)]">Sample roofs until the real roof data arrives.</span>
+        <span className="text-sm text-[var(--govuk-secondary-text)]">
+          {layer === "fit" ? "Sample roofs until the real roof data arrives." : "Circles sit at rough DISCOM centres until division shapes arrive."}
+        </span>
       </div>
 
       <RoofSheet roof={sheet?.kind === "roof" ? roof : null} onClose={() => setSheet(null)}
@@ -92,6 +92,14 @@ export function MapPage() {
         onShowRoofs={(d) => { setScope(d); setLayer("fit"); setSheet(null) }} onAlerts={() => navigate("alerts")} />
     </div>
   )
+}
+
+const APPS_SCALE = { from: "#bbd4ea", to: "#003078", label: "Homes that have applied" }
+
+function appsRange(today: ReturnType<typeof useApp>["today"]) {
+  const totals = today?.applications.by_discom.map((d) => d.total) ?? [0]
+  const lo = Math.min(...totals), hi = Math.max(...totals)
+  return { lo, hi, min: lo.toLocaleString("en-IN"), max: hi.toLocaleString("en-IN") }
 }
 
 const FIT_COLOR: Record<RoofCandidate["shade"], string> = {
@@ -108,12 +116,15 @@ function DiscomCircles({ onPick }: { onPick: (d: Discom) => void }) {
         const c = DISCOM_CENTRES[d.discom as Discom]
         if (!c) return null
         const size = 60 + Math.sqrt(d.total) / 2
+        const r = appsRange(today)
+        const fill = blend(APPS_SCALE.from, APPS_SCALE.to, (d.total - r.lo) / Math.max(1, r.hi - r.lo))
+        const dark = (d.total - r.lo) / Math.max(1, r.hi - r.lo) > 0.5
         return (
           <MapMarker key={d.discom} longitude={c.longitude} latitude={c.latitude} onClick={() => onPick(d.discom as Discom)}>
             <MarkerContent>
-              <button className="grid place-items-center rounded-full border-2 border-dashed border-foreground/70 bg-[#bbd4ea]/70 text-center text-sm font-bold backdrop-blur-[1px]"
-                style={{ width: size, height: size }}>
-                {d.total.toLocaleString("en-IN")}<span className="text-[10px] font-normal">{d.discom}</span>
+              <button className={cn("grid place-items-center rounded-full border-2 border-white text-center text-sm font-bold shadow-md", dark ? "text-white" : "text-[#0b0c0c]")}
+                style={{ width: size, height: size, background: fill, opacity: 0.92 }}>
+                {d.total.toLocaleString("en-IN")}<span className="text-xs font-normal">{d.discom}</span>
               </button>
             </MarkerContent>
           </MapMarker>
@@ -177,18 +188,24 @@ function RoofSheet({ roof, onClose, onCheck }: { roof: RoofCandidate | null; onC
               <SheetDescription className="text-base text-foreground">{shadeLabel(roof.shade)}</SheetDescription>
             </SheetHeader>
             <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
-              {/* Fair price: one number, the ladder, one supporting line */}
+              {/* The argument: what you'd actually pay, then the price curve that shows why */}
               <section className="flex flex-col gap-1">
-                <span className="text-muted-foreground">Fair price</span>
+                <span className="text-muted-foreground">You pay after subsidy</span>
                 {ladder ? (
                   <>
-                    <span className="text-3xl font-bold tabular-nums">
-                      {ladder.market_low ? lakhRange(ladder.market_low.total, ladder.market_high?.total) : lakh(ladder.benchmark?.total)}
+                    <span className="text-3xl font-bold text-[var(--govuk-green)] tabular-nums">{lakh(ladder.typical_you_pay)}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {lakh(ladder.typical_price)} typical price − {lakh(ladder.typical_subsidy)} subsidy
+                      {ladder.market_low && <> · market {lakhRange(ladder.market_low.total, ladder.market_high?.total)}</>}
                     </span>
-                    <span className="text-sm text-muted-foreground">before subsidy</span>
-                    <PriceLadder ladder={ladder} className="mt-1" />
                   </>
-                ) : <Skeleton className="h-16" />}
+                ) : <Skeleton className="h-14" />}
+              </section>
+
+              <section className="flex flex-col gap-1">
+                <span className="text-muted-foreground">Price by system size</span>
+                {ladders.size ? <PriceCurve ladders={ladders} size={roof.fitKw} /> : <Skeleton className="h-48" />}
+                <span className="text-sm text-muted-foreground">Delhi-wide prices. Prices for {roof.area} alone need local installer data.</span>
               </section>
 
               {/* Worth it: a 3-column strip, usage on top, answer below */}
@@ -257,8 +274,7 @@ function DiscomSheet({ id, onClose, onShowRoofs, onAlerts }: {
                   </div>
                 ))}
               </section>
-              <Missing what="division boundaries">Division shapes on the map (circles are drawn per DISCOM at approximate centres until these exist).</Missing>
-              <Missing what="change since last snapshot">Needs a stored previous snapshot of the applications feed to show “+n this week”.</Missing>
+              <Missing what="division shapes and weekly change">Division boundaries for the map, and the previous snapshot to show “+n this week”.</Missing>
             </div>
             <SheetFooter className="flex-row border-t">
               <Button className="flex-1" onClick={() => onShowRoofs(id)}>Show roofs here</Button>

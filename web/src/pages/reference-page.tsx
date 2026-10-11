@@ -103,7 +103,7 @@ export function ReferencePage() {
         <div className="flex min-w-0 flex-col gap-3 rounded-[2px] border bg-white p-5">
           <CardTitle source={<>Source: Delhi Solar Portal</>}>Applications by DISCOM</CardTitle>
           <DiscomMiniMap className="h-48" />
-          <Button variant="secondary" className="self-start" onClick={() => navigate("map")}>Open the roof map</Button>
+          <Button className="self-start" onClick={() => navigate("map")}>Find my roof</Button>
         </div>
       </div>
 
@@ -194,15 +194,6 @@ export function ReferencePage() {
         </TabsContent>
       </Tabs>
 
-      {/* what do you want to do */}
-      <div className="flex flex-col gap-3 rounded-[2px] border bg-white p-5">
-        <h2 className="text-lg font-bold">What do you want to do?</h2>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <Button onClick={() => navigate("map")}>Find my roof</Button>
-          <Button variant="outline" onClick={() => navigate("check")}>I know my monthly bill</Button>
-          <Button variant="outline" onClick={() => navigate("deal", { dealTab: "paid" })}>I already have a quote</Button>
-        </div>
-      </div>
       <p className="text-sm text-muted-foreground">Market prices come from installer websites and are indicative.</p>
     </div>
   )

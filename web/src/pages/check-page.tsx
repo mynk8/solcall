@@ -133,6 +133,9 @@ export function CheckPage() {
                   </div>
                 )
               })}
+              {answer && (
+                <p className="text-sm">A solar unit is worth <b>₹{answer.paid.value_per_unit?.toFixed(2)}</b> to you and costs <b>₹{answer.paid.cost_per_unit?.toFixed(2)}</b> over 25 years.</p>
+              )}
               <p className="text-sm text-muted-foreground">Tariffs held flat for 25 years (conservative). Price used: {answer ? `${lakh(answer.paid.price)} (${answer.price_basis})` : "…"}.</p>
               <button className="self-start text-sm govuk-link" onClick={() => navigate("guide")}>Why is my subsidy different? Read the guide →</button>
             </CollapsibleContent>
@@ -209,12 +212,10 @@ function Numbers({ answer, o }: { answer: Answer; o: Outcome }) {
   const { today } = useApp()
   const p = answer.paid
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <Stat k="Monthly bill: now → with solar" v={`${rupees(o.bill_now_month)} → ${rupees(o.bill_with_month)}`} tag={<SourceTag tier="govt">Delhi tariff + subsidy</SourceTag>} />
       <Stat k="Payback" v={o.verdict === "GO_FREE" ? "nothing to pay" : years(p.payback_discounted_years)}
         tag={<SourceTag tier={answer.price_basis === "market median" ? "market" : "govt"}>at {lakh(p.price)} · {answer.price_basis}</SourceTag>} />
-      <Stat k="Value vs cost per unit" v={`₹${p.value_per_unit?.toFixed(1) ?? "—"} vs ₹${p.cost_per_unit?.toFixed(1) ?? "—"}`}
-        tag={<SourceTag tier="data">25-year cost per solar unit</SourceTag>} />
       {answer.loan_applies && p.emi_cover ? (
         <Stat k="Loan EMI cover" v={`${p.emi_cover.toFixed(1)}×`}
           tag={<SourceTag tier="govt">{today?.rates ? `${today.rates.scheme_loan_pct.toFixed(2)}%` : ""} loan · EMI {rupees(p.emi_month)}</SourceTag>} />
