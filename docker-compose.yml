@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  solcall-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: solcall-layer3-engine:latest
+    container_name: solcall-layer3-engine
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./out:/app/out
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped

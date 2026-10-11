@@ -1,0 +1,1079 @@
+/* ==============================================================================
+   SolCall - Design System & Modern Aesthetics (Dark Mode Glassmorphism)
+   Tailored for Environmental Hacks (Bharat Builds Tour) - Track 03 Rooftop Solar
+   ============================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap');
+
+:root {
+  --bg-deep: #080C14;
+  --bg-surface: #0F172A;
+  --bg-surface-elevated: #1E293B;
+  --bg-glass: rgba(15, 23, 42, 0.78);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-highlight: rgba(245, 158, 11, 0.35);
+
+  --solar-amber: #F59E0B;
+  --solar-yellow: #FACC15;
+  --emerald-green: #10B981;
+  --cyan-blue: #06B6D4;
+  --rose-red: #EF4444;
+  --purple-accent: #8B5CF6;
+
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
+
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-deep);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Header & Live Ticker Strip */
+.top-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(8, 12, 20, 0.88);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.header-inner {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo-icon {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, var(--solar-amber), var(--solar-yellow));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
+}
+
+.brand-text h1 {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(to right, #ffffff, #fde68a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-text span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--solar-amber);
+  font-weight: 600;
+}
+
+/* Real-time Regulatory Ticker */
+.regulatory-ticker-strip {
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 8px 24px;
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+.ticker-items {
+  max-width: 1480px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  white-space: nowrap;
+}
+
+.ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticker-label {
+  color: var(--text-muted);
+}
+
+.ticker-val {
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.tier-pill {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.tier-t1 { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+.tier-t2 { background: rgba(6, 182, 212, 0.2); color: #38bdf8; border: 1px solid rgba(6, 182, 212, 0.4); }
+.tier-t3 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+
+/* Navigation Tab Bar */
+.nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(30, 41, 59, 0.5);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.nav-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.nav-tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tab-btn.active {
+  background: linear-gradient(135deg, var(--solar-amber), #d97706);
+  color: #0f172a;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Buttons */
+.btn {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  border: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--solar-amber), #d97706);
+  color: #0f172a;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+}
+
+.btn-secondary {
+  background: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-secondary:hover {
+  background: #334155;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-ghost:hover {
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Product Screens Container */
+.screens-viewport {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 24px;
+  min-height: calc(100vh - 120px);
+}
+
+.product-screen {
+  display: none;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.product-screen.active-screen {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==============================================================================
+   Screen 1: Delhi Roof Map & Screen 2: Roof Card
+   ============================================================================== */
+.map-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  gap: 24px;
+  height: calc(100vh - 180px);
+  min-height: 680px;
+}
+
+.map-viewport-panel {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: #0b111e;
+}
+
+#maplibre-map-container {
+  width: 100%;
+  height: 100%;
+}
+
+.map-floating-controls {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.discom-filter-bar {
+  display: flex;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.filter-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.filter-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.filter-btn.active {
+  background: var(--bg-surface-elevated);
+  color: var(--solar-amber);
+  border: 1px solid var(--border-highlight);
+}
+
+/* Screen 2: Roof Card Inspector */
+.roof-card-panel {
+  overflow-y: auto;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+}
+
+.roof-header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 16px;
+}
+
+.roof-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.badge-excellent { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.badge-good { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.badge-marginal { background: rgba(100, 116, 139, 0.3); color: #94a3b8; }
+.badge-t1 { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.badge-t3 { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+.badge-go { background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid #10b981; }
+.badge-go_free { background: rgba(6, 182, 212, 0.25); color: #38bdf8; border: 1px solid #06b6d4; }
+.badge-marginal { background: rgba(245, 158, 11, 0.25); color: #fbbf24; border: 1px solid #f59e0b; }
+.badge-not_worth { background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid #ef4444; }
+
+.roof-colony {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.roof-address {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.spec-tile {
+  background: var(--bg-surface);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.spec-tile-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.spec-tile-val {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-main);
+  margin-top: 2px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--solar-amber);
+  margin-bottom: 8px;
+}
+
+/* Unpooled Price Ladder Rungs */
+.price-ladder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rung-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.benchmark-rung {
+  border-left: 3px solid var(--emerald-green);
+}
+
+.market-rung {
+  border-left: 3px solid var(--solar-amber);
+}
+
+.history-rung {
+  border-left: 3px solid var(--cyan-blue);
+}
+
+.rung-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.rung-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.rung-price {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.rung-net {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.highlight-net {
+  color: var(--emerald-green);
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.rung-subtext {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* Usage Bands Table */
+.usage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.usage-table th, .usage-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.usage-table th {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.savings-col {
+  color: var(--emerald-green);
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+/* ==============================================================================
+   Screen 3: Check with My Bill (Calculator)
+   ============================================================================== */
+.calculator-grid {
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  gap: 28px;
+}
+
+.calc-inputs-panel {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.calc-results-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.input-num-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  width: 100%;
+}
+
+.input-num-box:focus {
+  outline: none;
+  border-color: var(--solar-amber);
+}
+
+.range-slider {
+  width: 100%;
+  accent-color: var(--solar-amber);
+}
+
+/* Verdict Banner */
+.verdict-banner-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.verdict-badge {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 800;
+  padding: 6px 20px;
+  border-radius: var(--radius-md);
+  display: inline-block;
+  letter-spacing: -0.5px;
+}
+
+.verdict-go { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 2px solid #10b981; }
+.verdict-go_free { background: rgba(6, 182, 212, 0.2); color: #38bdf8; border: 2px solid #06b6d4; }
+.verdict-marginal { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 2px solid #f59e0b; }
+.verdict-not_worth { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 2px solid #ef4444; }
+
+.verdict-reason-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  max-width: 580px;
+}
+
+/* Comparison Summary Tiles */
+.comparison-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.comp-tile {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.comp-tile-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.comp-tile-val {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.text-emerald { color: var(--emerald-green); }
+.text-amber { color: var(--solar-amber); }
+.text-cyan { color: var(--cyan-blue); }
+
+/* Subsidies Detailed Breakdown */
+.subsidy-breakdown-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.subsidy-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+}
+
+.subsidy-row.net-row {
+  border-bottom: none;
+  font-size: 16px;
+  font-weight: 700;
+  padding-top: 14px;
+}
+
+/* ==============================================================================
+   Screen 4: Deal & Quote Checker
+   ============================================================================== */
+.deal-checker-wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.deal-form-card {
+  padding: 28px;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.deal-evaluation-box {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  border: 1px solid var(--border-subtle);
+}
+
+.deal-fair { border-left: 4px solid var(--cyan-blue); }
+.deal-bargain { border-left: 4px solid var(--emerald-green); }
+.deal-overpriced { border-left: 4px solid var(--rose-red); }
+
+.deal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.deal-badge-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.deal-vendor-title {
+  font-family: var(--font-heading);
+  font-size: 20px;
+}
+
+.deal-quoted-num {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.deal-quoted-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.deal-summary-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 16px 0;
+  line-height: 1.6;
+}
+
+.deal-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.deal-tile-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; }
+.deal-tile-val { font-family: var(--font-mono); font-size: 20px; font-weight: 700; margin-top: 2px; }
+.deal-tile-sub { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+
+.deal-alerts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.alert-box {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.alert-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; }
+.alert-success { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7; }
+.alert-warning { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); color: #fde68a; }
+
+.deal-actions-row {
+  display: flex;
+  gap: 12px;
+}
+
+/* ==============================================================================
+   Screen 5: Delhi Solar Reference Price Index (Public Benchmark)
+   ============================================================================== */
+.index-page-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.stats-3-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.discom-pill {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.discom-brpl { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.discom-bypl { background: rgba(6, 182, 212, 0.2); color: #38bdf8; }
+.discom-tpddl { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+
+.stat-num {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.stat-footer {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 8px;
+}
+
+.reference-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+}
+
+.reference-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--bg-surface);
+}
+
+.reference-table th, .reference-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+}
+
+.reference-table th {
+  background: #111a2e;
+  color: var(--text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Surcharge Component */
+.surcharge-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.surcharge-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.surcharge-val {
+  font-family: var(--font-mono);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--solar-amber);
+}
+
+.surcharge-period {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.surcharge-note {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.surcharge-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeline-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.timeline-pct {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.timeline-badge {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* ==============================================================================
+   Screen 6: Data Feeds & Live API Console
+   ============================================================================== */
+.data-catalog-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+.catalog-downloads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.catalog-download-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.api-console-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.code-area {
+  background: #090e1a;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: #38bdf8;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 12px;
+  width: 100%;
+  resize: vertical;
+}
+
+.api-response-pre {
+  background: #090e1a;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: #a7f3d0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 14px;
+  max-height: 280px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.api-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.badge-error { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+/* Modals & WHY Drawer */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  max-width: 720px;
+  width: 100%;
+  padding: 32px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.modal-close-btn:hover { color: var(--text-main); }
+
+.provenance-drawer {
+  position: fixed;
+  top: 0;
+  right: -520px;
+  width: 500px;
+  height: 100vh;
+  background: #0c1322;
+  border-left: 1px solid var(--border-subtle);
+  z-index: 2500;
+  transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 32px;
+  overflow-y: auto;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.6);
+}
+
+.provenance-drawer.drawer-open {
+  right: 0;
+}
+
+/* MapLibre Hover Popup Custom Styling */
+.maplibregl-popup-content {
+  background: rgba(15, 23, 42, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--text-main) !important;
+  padding: 14px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: #0f172a !important; }
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #0f172a !important; }
+
+.popup-title { font-family: var(--font-heading); font-size: 15px; font-weight: 700; }
+.popup-sub { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+.popup-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px; color: #fff; }
+.popup-detail { font-size: 12px; margin-top: 3px; color: var(--text-muted); }
+
+/* Responsive */
+@media (max-width: 1080px) {
+  .map-layout-grid { grid-template-columns: 1fr; height: auto; }
+  .calculator-grid { grid-template-columns: 1fr; }
+  .comparison-cards-grid { grid-template-columns: 1fr 1fr; }
+  .stats-3-grid { grid-template-columns: 1fr; }
+  .data-catalog-grid { grid-template-columns: 1fr; }
+}

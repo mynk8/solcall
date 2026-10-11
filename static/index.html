@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolCall — Delhi Rooftop Solar Reference Price & Decision Engine</title>
+  <meta name="description" content="Map-to-deal rooftop solar financial engine for Delhi households. Built on an empirical reference price index, gross-to-net billing, and 25-year lifecycle models.">
+  
+  <!-- MapLibre GL JS CSS & JS (Open Source WebGL Mapping) -->
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <!-- SolCall Custom Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header class="top-header">
+    <div class="header-inner">
+      <div class="brand-wrap">
+        <div class="brand-logo-icon">☀️</div>
+        <div class="brand-text">
+          <h1>SolCall</h1>
+          <span>Delhi Solar Reference Price</span>
+        </div>
+      </div>
+
+      <!-- Navigation Screen Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab-btn active" data-target="screen-map">
+          🗺️ Roof Map & Card
+        </button>
+        <button class="nav-tab-btn" data-target="screen-calculator">
+          ⚡ Check With My Bill
+        </button>
+        <button class="nav-tab-btn" data-target="screen-quote">
+          🤝 Quote Checker
+        </button>
+        <button class="nav-tab-btn" data-target="screen-reference">
+          📊 Reference Index
+        </button>
+        <button class="nav-tab-btn" data-target="screen-data">
+          📁 Data & API
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <button class="btn btn-ghost" onclick="openSubsidyGuideModal()">
+          📖 How Subsidy Works
+        </button>
+        <button class="btn btn-secondary" onclick="openAlertsModal()">
+          🔔 Alerts (1)
+        </button>
+        <button class="btn btn-primary" onclick="openProvenanceDrawer()">
+          🔍 Audit & WHY
+        </button>
+      </div>
+    </div>
+
+    <!-- Real-time Regulatory & Market Ticker Strip -->
+    <div class="regulatory-ticker-strip">
+      <div class="ticker-items">
+        <div class="ticker-item">
+          <span class="ticker-label">DERC Fitted Multiplier (m):</span>
+          <span class="ticker-val">1.3696</span>
+          <span class="tier-pill tier-t1">T1 Govt</span>
+        </div>
+        <div class="ticker-item">
+          <span class="ticker-label">BRPL PPAC Surcharge:</span>
+          <span class="ticker-val">10.00% (Jun 2026)</span>
+          <span class="tier-pill tier-t1">T1 DISCOM</span>
+        </div>
+        <div class="ticker-item">
+          <span class="ticker-label">Scheme Loan Rate:</span>
+          <span class="ticker-val">6.00% (Repo 5.5% + 0.5%)</span>
+          <span class="tier-pill tier-t1">T1 RBI</span>
+        </div>
+        <div class="ticker-item">
+          <span class="ticker-label">Total Delhi Applications:</span>
+          <span class="ticker-val">81,312</span>
+          <span class="tier-pill tier-t1">T1 Portal</span>
+        </div>
+        <div class="ticker-item">
+          <span class="ticker-label">Min Solar Yield:</span>
+          <span class="ticker-val">1,466 kWh/kWp/yr</span>
+          <span class="tier-pill tier-t2">T2 World Bank</span>
+        </div>
+        <div class="ticker-item">
+          <span class="ticker-label">Reference Median (3 kW):</span>
+          <span class="ticker-val">₹2,27,500</span>
+          <span class="tier-pill tier-t3">T3 Market n=2</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Viewport for Screens -->
+  <main class="screens-viewport">
+
+    <!-- ========================================================================
+         SCREEN 1 & 2: Delhi Roof Map & Roof Card Inspector
+         ======================================================================== -->
+    <section id="screen-map" class="product-screen active-screen">
+      <div class="map-layout-grid">
+        
+        <!-- Map Viewport with MapLibre GL JS -->
+        <div class="map-viewport-panel">
+          <div class="map-floating-controls">
+            <div class="discom-filter-bar">
+              <button class="filter-btn active" onclick="filterMapDiscom('ALL')">All Delhi</button>
+              <button class="filter-btn" onclick="filterMapDiscom('BRPL')">BRPL (South/West)</button>
+              <button class="filter-btn" onclick="filterMapDiscom('BYPL')">BYPL (East)</button>
+              <button class="filter-btn" onclick="filterMapDiscom('TPDDL')">TPDDL (North)</button>
+              <button class="filter-btn" onclick="filterMapDiscom('NDMC')">NDMC</button>
+            </div>
+          </div>
+          <div id="maplibre-map-container"></div>
+        </div>
+
+        <!-- Screen 2: Roof Card Inspector -->
+        <aside class="glass-panel roof-card-panel">
+          <div class="roof-header">
+            <div class="roof-header-top">
+              <span id="roof-id-badge" class="badge badge-t1">DEL-GK2-B4-09</span>
+              <span id="roof-discom-badge" class="badge badge-good">BRPL (W1JFR)</span>
+            </div>
+            <h2 id="roof-colony-title" class="roof-colony">Greater Kailash II</h2>
+            <p id="roof-address-text" class="roof-address">B-4/18, Greater Kailash II, New Delhi 110048</p>
+          </div>
+
+          <!-- Physical Specs -->
+          <div>
+            <div class="section-label">Rooftop Geometry & Access</div>
+            <div class="specs-grid">
+              <div class="spec-tile">
+                <div class="spec-tile-label">Recommended Capacity</div>
+                <div id="roof-capacity-val" class="spec-tile-val text-amber">3.0 kW</div>
+              </div>
+              <div class="spec-tile">
+                <div class="spec-tile-label">Usable Solar Area</div>
+                <div id="roof-area-val" class="spec-tile-val">450 sq ft</div>
+              </div>
+              <div class="spec-tile">
+                <div class="spec-tile-label">Solar Fit Score</div>
+                <div id="roof-fit-badge" class="spec-tile-val text-emerald">EXCELLENT (95/100)</div>
+              </div>
+              <div class="spec-tile">
+                <div class="spec-tile-label">Shade Condition</div>
+                <div id="roof-shade-val" class="spec-tile-val">Light Shade (94%)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Unpooled Price Ladder for this exact size -->
+          <div>
+            <div class="section-label">Delhi Solar Reference Price Ladder (for this 3 kW roof)</div>
+            <div id="roof-price-ladder-container" class="price-ladder-list">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+
+          <!-- Outcomes by Usage Band -->
+          <div>
+            <div class="section-label">Household Outcomes by Usage Band</div>
+            <div id="usage-bands-container">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+
+          <!-- Primary Actions -->
+          <div style="display: flex; gap: 10px; margin-top: auto;">
+            <button class="btn btn-primary" style="flex: 1;" onclick="transferRoofToCalculator()">
+              ⚡ Check with My Bill
+            </button>
+            <button class="btn btn-secondary" onclick="switchScreen('screen-quote')">
+              Check Quote
+            </button>
+          </div>
+        </aside>
+
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         SCREEN 3: Check With My Bill (Calculator & Verdict)
+         ======================================================================== -->
+    <section id="screen-calculator" class="product-screen">
+      <div class="calculator-grid">
+        
+        <!-- Inputs Card -->
+        <div class="glass-panel calc-inputs-panel">
+          <div>
+            <span class="badge badge-t1">Direct Math Engine</span>
+            <h2 style="font-family: var(--font-heading); font-size: 24px; margin-top: 6px;">Check With My Bill</h2>
+            <p style="font-size: 13px; color: var(--text-muted);">Calculated using DERC progressive tariff slabs, gross-to-net power subsidies, and net metering.</p>
+          </div>
+
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="calc-units-input">Monthly Electricity Consumption (Units / kWh)</label>
+              <span class="text-amber font-mono" id="units-display"></span>
+            </div>
+            <input type="number" id="calc-units-input" class="input-num-box" value="450" min="50" max="2500" step="10">
+            <input type="range" id="calc-units-slider" class="range-slider" value="450" min="50" max="1500" step="10">
+            <span style="font-size: 11px; color: var(--text-dim);">Typical 2-3 BHK in Delhi uses 400–600 units during summer.</span>
+          </div>
+
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="calc-load-input">Sanctioned Electricity Load (kW)</label>
+            </div>
+            <select id="calc-load-input" class="input-num-box">
+              <option value="2">2 kW (Domestic)</option>
+              <option value="3" selected>3 kW (Standard Domestic)</option>
+              <option value="5">5 kW (Heavy AC Load)</option>
+              <option value="7">7 kW (High Capacity)</option>
+              <option value="10">10 kW (Large Villa / Independent House)</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="calc-size-input">Target Solar Capacity (kW)</label>
+            </div>
+            <select id="calc-size-input" class="input-num-box">
+              <option value="1">1 kW (Fits ~100–120 sq ft)</option>
+              <option value="2">2 kW (Fits ~200–240 sq ft)</option>
+              <option value="3" selected>3 kW (Fits ~300–360 sq ft - Max PM Surya Ghar Subsidy)</option>
+              <option value="4">4 kW (Fits ~400–480 sq ft)</option>
+              <option value="5">5 kW (Fits ~500–600 sq ft)</option>
+              <option value="10">10 kW (Fits ~1,000+ sq ft)</option>
+            </select>
+            <span style="font-size: 11px; color: var(--text-dim);">DERC Regulation 5 limits solar capacity to sanctioned load.</span>
+          </div>
+
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="calc-route-select">Consumer Application Route</label>
+            </div>
+            <select id="calc-route-select" class="input-num-box">
+              <option value="standard" selected>Standard Capex (PM Surya Ghar + Delhi State Subsidy)</option>
+              <option value="free">Delhi Free Solar Scheme (RESCO / Zero Cost if Gross ≤ 400u)</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="calc-surplus-select">Net Metering Surplus Settlement Rate</label>
+            </div>
+            <select id="calc-surplus-select" class="input-num-box">
+              <option value="3.5" selected>Conservative Market Benchmark (₹3.50/kWh)</option>
+              <option value="6.5">Policy Worked Example Rate (₹6.50/kWh)</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary" onclick="runCalculatorSimulation()" style="width: 100%; justify-content: center; padding: 12px;">
+            Recalculate Financial Verdict
+          </button>
+        </div>
+
+        <!-- Results Card -->
+        <div class="calc-results-panel">
+          
+          <!-- Prominent Verdict Banner -->
+          <div class="verdict-banner-box">
+            <div>
+              <span style="font-size: 12px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Financial Decision</span>
+              <div style="margin-top: 4px;">
+                <span id="calc-verdict-badge" class="verdict-badge verdict-go">GO</span>
+              </div>
+              <p id="calc-verdict-reason" class="verdict-reason-text">
+                Strong economic case: Spread >= ₹1/unit, discounted payback <= 7 years, and healthy EMI coverage.
+              </p>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button class="btn btn-secondary" onclick="shareVerdictOnWhatsApp()">
+                📲 Share on WhatsApp
+              </button>
+              <button class="btn btn-ghost" onclick="openProvenanceDrawer()">
+                Why? View Formula Lineage
+              </button>
+            </div>
+          </div>
+
+          <!-- Comparison Summary Tiles -->
+          <div class="comparison-cards-grid">
+            <div class="comp-tile">
+              <div class="comp-tile-label">Bill Before Solar</div>
+              <div id="calc-bill-before" class="comp-tile-val">₹2,705</div>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">Monthly average</div>
+            </div>
+            <div class="comp-tile">
+              <div class="comp-tile-label">Bill With Solar</div>
+              <div id="calc-bill-after" class="comp-tile-val text-emerald">₹624</div>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">After net netting</div>
+            </div>
+            <div class="comp-tile">
+              <div class="comp-tile-label">Net Monthly Savings</div>
+              <div id="calc-savings-monthly" class="comp-tile-val text-emerald">+₹2,081/mo</div>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">Direct electricity offset</div>
+            </div>
+            <div class="comp-tile">
+              <div class="comp-tile-label">Year 1 Net Savings</div>
+              <div id="calc-savings-yearly" class="comp-tile-val text-amber">₹24,974</div>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">Annual savings</div>
+            </div>
+          </div>
+
+          <!-- Subsidies & Net Investment Out-of-Pocket -->
+          <div class="subsidy-breakdown-box">
+            <div class="section-label">Subsidies Claimable (Delhi Solar Policy 2023 2nd Amend + PM Surya Ghar)</div>
+            
+            <div class="subsidy-row">
+              <span>Gross Benchmark System Cost (PMSG Standard)</span>
+              <span id="calc-gross-cost" class="font-mono font-bold">₹1,45,000</span>
+            </div>
+            <div class="subsidy-row">
+              <span>Central PM Surya Ghar CFA Subsidy (₹30k/kW up to 2kW + ₹18k 3rd kW)</span>
+              <span id="calc-central-sub" class="font-mono text-emerald font-bold">-₹78,000</span>
+            </div>
+            <div class="subsidy-row">
+              <span>Delhi State Capital Subsidy (₹26k/kW, max ₹78k, capped at cost − central)</span>
+              <span id="calc-delhi-sub" class="font-mono text-emerald font-bold">-₹67,000</span>
+            </div>
+            <div class="subsidy-row net-row">
+              <span>Net Consumer Cost (Out-of-Pocket Investment)</span>
+              <span id="calc-net-cost" class="font-mono text-emerald font-bold">₹0.00</span>
+            </div>
+          </div>
+
+          <!-- Detailed Financial Lifecycle Indicators -->
+          <div class="comparison-cards-grid">
+            <div class="comp-tile">
+              <div class="comp-tile-label">Discounted Payback</div>
+              <div id="calc-payback" class="comp-tile-val text-amber">0.0 yrs</div>
+              <div style="font-size: 11px; color: var(--text-dim);">Hurdle target: &le; 7.0 yrs</div>
+            </div>
+            <div class="comp-tile">
+              <div class="comp-tile-label">25-Year Net Profit (NPV)</div>
+              <div id="calc-npv" class="comp-tile-val text-emerald">₹2,82,259</div>
+              <div style="font-size: 11px; color: var(--text-dim);">Discounted at 6.00% loan rate</div>
+            </div>
+            <div class="comp-tile">
+              <div class="comp-tile-label">Unit Value Spread</div>
+              <div id="calc-spread" class="comp-tile-val text-cyan">+₹5.44/kWh</div>
+              <div style="font-size: 11px; color: var(--text-dim);">Value/unit minus LCOE cost</div>
+            </div>
+            <div class="comp-tile">
+              <div class="comp-tile-label">10-Year Loan Cover (DSCR)</div>
+              <div id="calc-dscr" class="comp-tile-val text-emerald">∞ (No Loan)</div>
+              <div id="calc-emi" style="font-size: 11px; color: var(--text-dim);">Zero EMI required</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         SCREEN 4: Deal & Installer Quote Checker
+         ======================================================================== -->
+    <section id="screen-quote" class="product-screen">
+      <div class="deal-checker-wrap">
+        <div>
+          <span class="badge badge-t3">Consumer Protection Guard</span>
+          <h2 style="font-family: var(--font-heading); font-size: 26px; margin-top: 6px;">Delhi Solar Deal & Quote Checker</h2>
+          <p style="font-size: 14px; color: var(--text-muted);">Paste or enter any installer quote. We compare it against our unpooled Delhi Solar Reference Price ladder, check DCR and GST rules, and tell you if it's fair or overpriced.</p>
+        </div>
+
+        <div class="glass-panel deal-form-card">
+          <form id="quote-checker-form">
+            <div class="form-grid-3">
+              <div class="input-group">
+                <label for="quote-size-select">Proposed System Capacity</label>
+                <select id="quote-size-select" class="input-num-box">
+                  <option value="1">1 kW</option>
+                  <option value="2">2 kW</option>
+                  <option value="3" selected>3 kW</option>
+                  <option value="4">4 kW</option>
+                  <option value="5">5 kW</option>
+                  <option value="10">10 kW</option>
+                </select>
+              </div>
+
+              <div class="input-group">
+                <label for="quote-price-input">Total Quoted Price (₹ Gross)</label>
+                <input type="number" id="quote-price-input" class="input-num-box" value="240000" step="5000">
+              </div>
+
+              <div class="input-group">
+                <label for="quote-vendor-input">Installer / Vendor Brand</label>
+                <input type="text" id="quote-vendor-input" class="input-num-box" value="SolarSquare (or Local Installer)">
+              </div>
+            </div>
+
+            <div class="form-grid-3" style="margin-top: 16px;">
+              <div class="input-group">
+                <label for="quote-dcr-select">Domestic Content (DCR) Panels?</label>
+                <select id="quote-dcr-select" class="input-num-box">
+                  <option value="yes" selected>Yes - Certified DCR Modules</option>
+                  <option value="no">No - Non-DCR / Imported Cells</option>
+                  <option value="unknown">Unknown / Not Mentioned</option>
+                </select>
+              </div>
+
+              <div class="input-group">
+                <label for="quote-gst-select">GST (13.8%) Included in Quote?</label>
+                <select id="quote-gst-select" class="input-num-box">
+                  <option value="yes" selected>Yes - GST Included in Quoted Price</option>
+                  <option value="no">No - GST Excluded (Billed Extra)</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </div>
+
+              <div style="display: flex; align-items: flex-end;">
+                <button type="submit" class="btn btn-primary" style="width: 100%; height: 46px; justify-content: center;">
+                  Compare Against Reference Price
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Deal Result Output Container -->
+        <div id="quote-result-card" style="display: none;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         SCREEN 5: Delhi Solar Reference Price Index (Public Benchmark)
+         ======================================================================== -->
+    <section id="screen-reference" class="product-screen">
+      <div class="index-page-wrap">
+        <div>
+          <span class="badge badge-t1">Public Open Benchmark</span>
+          <h2 style="font-family: var(--font-heading); font-size: 28px; margin-top: 6px;">The Delhi Solar Reference Price Index</h2>
+          <p style="font-size: 14px; color: var(--text-muted);">Delhi's only public, neutral solar price benchmark. Borrowing GridStatus's rigor, every size ladder is kept strictly unpooled to prevent market distortion.</p>
+        </div>
+
+        <!-- DISCOM Applications Stats 3-Grid -->
+        <div id="discom-stats-container" class="stats-3-grid">
+          <!-- Dynamically rendered -->
+        </div>
+
+        <!-- The Unpooled Reference Ladder Table -->
+        <div class="reference-table-wrap">
+          <table class="reference-table">
+            <thead>
+              <tr>
+                <th>System Size</th>
+                <th>Govt Benchmark (T1)</th>
+                <th>Market Low</th>
+                <th>Market Median</th>
+                <th>Market High</th>
+                <th>Central CFA</th>
+                <th>Delhi State Sub.</th>
+                <th>Net Benchmark Cost</th>
+                <th>Audit Lineage</th>
+              </tr>
+            </thead>
+            <tbody id="reference-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- BRPL PPAC Surcharge History Series -->
+        <div id="surcharge-history-container">
+          <!-- Dynamically rendered -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         SCREEN 6: Data Feeds & Live API Console
+         ======================================================================== -->
+    <section id="screen-data" class="product-screen">
+      <div class="data-catalog-grid">
+        
+        <!-- Feed Downloads Catalog -->
+        <div class="glass-panel" style="padding: 28px;">
+          <div>
+            <span class="badge badge-t1">Open Data Store</span>
+            <h2 style="font-family: var(--font-heading); font-size: 22px; margin-top: 6px;">Public Data Feeds Catalog</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">All feeds generated daily by the Layer 3 engine across gross units &times; load &times; size &times; route.</p>
+          </div>
+
+          <div class="catalog-downloads-list">
+            <div class="catalog-download-card">
+              <div>
+                <strong style="font-size: 14px;">feed_household_conservative.csv</strong>
+                <p style="font-size: 11px; color: var(--text-dim);">Full evaluation grid with conservative ₹3.50 surplus payout rate (106 KB).</p>
+              </div>
+              <a href="/api/feeds/conservative-csv" download="feed_household_conservative.csv" class="btn btn-secondary">
+                Download CSV
+              </a>
+            </div>
+
+            <div class="catalog-download-card">
+              <div>
+                <strong style="font-size: 14px;">feed_household_policy_example_appc.csv</strong>
+                <p style="font-size: 11px; color: var(--text-dim);">Full evaluation grid with policy ₹6.50 surplus payout rate (106 KB).</p>
+              </div>
+              <a href="/api/feeds/policy-csv" download="feed_household_policy_example_appc.csv" class="btn btn-secondary">
+                Download CSV
+              </a>
+            </div>
+
+            <div class="catalog-download-card">
+              <div>
+                <strong style="font-size: 14px;">feed_best_size_conservative.csv</strong>
+                <p style="font-size: 11px; color: var(--text-dim);">Highest-NPV system size per (units, load, route, price rung) (36 KB).</p>
+              </div>
+              <a href="/api/feeds/best-size-csv" download="feed_best_size_conservative.csv" class="btn btn-secondary">
+                Download CSV
+              </a>
+            </div>
+
+            <div class="catalog-download-card">
+              <div>
+                <strong style="font-size: 14px;">reference_price.json</strong>
+                <p style="font-size: 11px; color: var(--text-dim);">Unpooled price ladder per system size with provenance tiers (7 KB).</p>
+              </div>
+              <a href="/api/reference-price" target="_blank" class="btn btn-secondary">
+                View JSON
+              </a>
+            </div>
+
+            <div class="catalog-download-card">
+              <div>
+                <strong style="font-size: 14px;">provenance.json</strong>
+                <p style="font-size: 11px; color: var(--text-dim);">Every rule, citation URL, fitted m, and VERIFY/ASSUMPTION audit items (13 KB).</p>
+              </div>
+              <a href="/api/provenance" target="_blank" class="btn btn-secondary">
+                View JSON
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive REST API Test Console -->
+        <div class="api-console-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span class="badge badge-t2">For Lenders & DISCOMs</span>
+              <h2 style="font-family: var(--font-heading); font-size: 22px; margin-top: 6px;">Live REST API Console</h2>
+            </div>
+            <span id="api-status-badge" class="api-badge badge-success">POST /api/evaluate</span>
+          </div>
+
+          <p style="font-size: 12px; color: var(--text-muted);">
+            Test our containerized API hosted on AWS ECS Fargate. Modify the JSON payload below and trigger a 25-year simulation.
+          </p>
+
+          <label for="api-request-payload" style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Request Payload (JSON):</label>
+          <textarea id="api-request-payload" class="code-area" rows="6">{
+  "consumption": 450.0,
+  "sanctioned_load_kw": 3.0,
+  "system_size_kw": 3.0,
+  "route": "standard",
+  "surplus_rate": 3.50
+}</textarea>
+
+          <button id="btn-test-api" class="btn btn-primary" style="justify-content: center;">
+            ▶ Execute POST /api/evaluate
+          </button>
+
+          <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Response Body (JSON):</label>
+          <pre id="api-response-viewer" class="api-response-pre">{
+  "status": "ready",
+  "message": "Click 'Execute' to run live simulation."
+}</pre>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================================
+       MODAL 1: How Delhi's Solar Subsidy Works
+       ======================================================================== -->
+  <div id="subsidy-guide-modal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close-btn" onclick="closeSubsidyGuideModal()">&times;</button>
+      <span class="badge badge-t1">Policy Primer</span>
+      <h2 style="font-family: var(--font-heading); font-size: 24px; margin-top: 8px;">How Delhi's Solar Subsidy Really Works</h2>
+      
+      <div style="margin-top: 16px; font-size: 14px; color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 14px;">
+        <div class="alert-box alert-warning">
+          <strong>⚠️ The Gross-vs-Net Rule (AMEND2 cl. 4.14):</strong> This is the #1 misunderstanding for Delhi households. Your <strong>power subsidy bracket is decided by GROSS consumption</strong> (before solar), but it is <strong>applied to reduce your NET bill</strong> (after solar).
+        </div>
+
+        <p><strong>1. Gross ≤ 200 Units/Month:</strong><br>
+        Qualifies for 100% subsidy. With solar net metering, your net electricity bill is ₹0, plus you earn the <em>under-200 incentive</em> of ₹1.50 per unit self-consumed!</p>
+
+        <p><strong>2. Gross 201–400 Units/Month:</strong><br>
+        Qualifies for a 50% power subsidy capped at ₹800. Solar reduces your units from the top slab (₹4.50/unit) down to ₹0.</p>
+
+        <p><strong>3. Gross > 400 Units/Month:</strong><br>
+        Zero power subsidy! But solar provides its <em>highest financial savings</em> here because it offsets Delhi's progressive ₹6.50–₹8.00/unit slabs.</p>
+
+        <p><strong>4. Central + Delhi Dual Capital Subsidy:</strong><br>
+        On a 3 kW system, you receive <strong>₹78,000</strong> from PM Surya Ghar (Central) PLUS up to <strong>₹78,000</strong> from Delhi State Policy (₹26k/kW), yielding up to <strong>₹1,56,000 in total capital subsidies</strong>!</p>
+      </div>
+
+      <button class="btn btn-primary" onclick="closeSubsidyGuideModal()" style="margin-top: 20px; width: 100%; justify-content: center;">
+        Got It, Back to Product
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 2: Alerts Simulator
+       ======================================================================== -->
+  <div id="alerts-modal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close-btn" onclick="closeAlertsModal()">&times;</button>
+      <span class="badge badge-t1">Live Feeds Monitor</span>
+      <h2 style="font-family: var(--font-heading); font-size: 24px; margin-top: 8px;">Regulatory & Market Alerts</h2>
+      
+      <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div class="alert-box alert-warning">
+          <strong>⚡ Surcharge Adjustment Alert (BRPL):</strong> PPAC rate active at <strong>10.00%</strong> (from 2026-06-01). Automatically factored into SolCall's multiplier m=1.3696.
+        </div>
+        <div class="alert-box alert-success">
+          <strong>💰 Scheme Loan Rate Update:</strong> RBI Policy Repo rate at 5.50% → PM Surya Ghar concession loan rate steady at <strong>6.00%</strong> (Repo + 0.50%).
+        </div>
+        <div class="alert-box alert-success">
+          <strong>🏆 Milestone Alert (Division W1JFR):</strong> West Delhi Division W1JFR crossed <strong>10,294 solar applications</strong>, maintaining Rank #1 across Delhi.
+        </div>
+        <div class="alert-box alert-warning">
+          <strong>📉 Price Observation:</strong> SolarSquare updated 3 kW quote to ₹2,40,000 (DCR compliant, state subsidy status flagged).
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" onclick="closeAlertsModal()" style="margin-top: 20px; width: 100%; justify-content: center;">
+        Dismiss Alerts
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       DRAWER: WHY Provenance & Regulatory Audit
+       ======================================================================== -->
+  <div id="provenance-drawer" class="provenance-drawer">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h3 style="font-family: var(--font-heading); font-size: 20px;">Audit & Provenance (WHY)</h3>
+      <button class="modal-close-btn" style="position: static;" onclick="closeProvenanceDrawer()">&times;</button>
+    </div>
+
+    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">
+      Every number in SolCall carries a formal confidence tier: <strong>T1</strong> (Govt/Regulator/DISCOM), <strong>T2</strong> (World Bank/Solargis), or <strong>T3</strong> (Market Vendor). Zero LLM guesswork.
+    </p>
+
+    <div style="display: flex; flex-direction: column; gap: 14px; font-size: 13px;">
+      <div class="spec-tile">
+        <div class="spec-tile-label">Fitted Multiplier (m)</div>
+        <div class="spec-tile-val text-amber">1.369596</div>
+        <p style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Fitted to AMEND2 worked examples: 400u/3kW → ₹2,272 & 100u/3kW → ₹613. Absorbs PPAC, pension cess, tax.</p>
+      </div>
+
+      <div class="spec-tile">
+        <div class="spec-tile-label">Solar Yield Baseline</div>
+        <div class="spec-tile-val text-cyan">1,392.70 kWh/kWp/yr</div>
+        <p style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Global Solar Atlas min 1,466 kWh/kWp/yr across 5 Delhi coordinates minus 5% dust/smog loss.</p>
+      </div>
+
+      <div class="spec-tile">
+        <div class="spec-tile-label">Regulatory Precedents</div>
+        <ul style="font-size: 11px; color: var(--text-dim); margin-top: 6px; padding-left: 16px; line-height: 1.6;">
+          <li><strong>AMEND2:</strong> Delhi Solar Policy 2023 (2nd Amend, 17 Sep 2026)</li>
+          <li><strong>PMSG:</strong> PM Surya Ghar CFA Capex Guidelines</li>
+          <li><strong>NETMETER:</strong> DERC Net Metering Regulations 2014</li>
+          <li><strong>DERC Tariff:</strong> Schedule FY2020-21 progressive slabs</li>
+        </ul>
+      </div>
+
+      <div class="spec-tile">
+        <div class="spec-tile-label">Formally Tracked VERIFY Items</div>
+        <ul style="font-size: 11px; color: var(--text-dim); margin-top: 6px; padding-left: 16px; line-height: 1.6;">
+          <li><code>tariff.energy_slabs</code>: VERIFY with live customer bills</li>
+          <li><code>net_metering.surplus_rate</code>: ₹3.50 conservative (VERIFY)</li>
+          <li><code>under200_incentive</code>: Clause 4.14 interpretation (VERIFY)</li>
+          <li><code>free_scheme</code>: Marked non-operational (VERIFY)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SolCall Scripts -->
+  <script src="js/delhi_geojson.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/calculator.js"></script>
+  <script src="js/quote_checker.js"></script>
+  <script src="js/reference_index.js"></script>
+  <script src="js/data_catalog.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

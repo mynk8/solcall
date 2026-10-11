@@ -1,0 +1,123 @@
+[
+  {
+    "size_kw": 2.0,
+    "price_low": 195000.0,
+    "price_high": 195000.0,
+    "source": "MKT_SS",
+    "tier": "T3",
+    "as_of": "2026-10-08",
+    "gst_included": null,
+    "dcr_certified": true,
+    "notes": "SolarSquare Delhi price page; stale Delhi subsidy shown"
+  },
+  {
+    "size_kw": 3.0,
+    "price_low": 240000.0,
+    "price_high": 240000.0,
+    "source": "MKT_SS",
+    "tier": "T3",
+    "as_of": "2026-10-08",
+    "gst_included": null,
+    "dcr_certified": true,
+    "notes": "SolarSquare Delhi price page; stale Delhi subsidy shown"
+  },
+  {
+    "size_kw": 4.0,
+    "price_low": 273000.0,
+    "price_high": 273000.0,
+    "source": "MKT_SS",
+    "tier": "T3",
+    "as_of": "2026-10-08",
+    "gst_included": null,
+    "dcr_certified": true,
+    "notes": "SolarSquare Delhi price page; stale Delhi subsidy shown"
+  },
+  {
+    "size_kw": 5.0,
+    "price_low": 330000.0,
+    "price_high": 330000.0,
+    "source": "MKT_SS",
+    "tier": "T3",
+    "as_of": "2026-10-08",
+    "gst_included": null,
+    "dcr_certified": true,
+    "notes": "SolarSquare Delhi price page; stale Delhi subsidy shown"
+  },
+  {
+    "size_kw": 10.0,
+    "price_low": 593000.0,
+    "price_high": 593000.0,
+    "source": "MKT_SS",
+    "tier": "T3",
+    "as_of": "2026-10-08",
+    "gst_included": null,
+    "dcr_certified": true,
+    "notes": "SolarSquare Delhi price page; stale Delhi subsidy shown"
+  },
+  {
+    "size_kw": 3.0,
+    "price_low": 198000.0,
+    "price_high": 233000.0,
+    "source": "MKT_HG",
+    "tier": "T3",
+    "as_of": "2026-08-07",
+    "gst_included": null,
+    "dcr_certified": null,
+    "notes": "Heaven Green Energy Delhi cost page quote range"
+  },
+  {
+    "size_kw": 5.0,
+    "price_low": 258000.0,
+    "price_high": 303000.0,
+    "source": "MKT_HG",
+    "tier": "T3",
+    "as_of": "2026-08-07",
+    "gst_included": null,
+    "dcr_certified": null,
+    "notes": "Heaven Green Energy Delhi cost page quote range"
+  },
+  {
+    "size_kw": 10.0,
+    "price_low": 403000.0,
+    "price_high": 488000.0,
+    "source": "MKT_HG",
+    "tier": "T3",
+    "as_of": "2026-08-07",
+    "gst_included": null,
+    "dcr_certified": null,
+    "notes": "Heaven Green Energy Delhi cost page quote range"
+  },
+  {
+    "size_kw": 1.0,
+    "price_low": 39000.0,
+    "price_high": 39000.0,
+    "source": "TPDDL_HIST",
+    "tier": "T1",
+    "as_of": "Historical",
+    "gst_included": false,
+    "dcr_certified": true,
+    "notes": "TPDDL residential scheme historical rate (excl. GST)"
+  },
+  {
+    "size_kw": 2.0,
+    "price_low": 78000.0,
+    "price_high": 78000.0,
+    "source": "TPDDL_HIST",
+    "tier": "T1",
+    "as_of": "Historical",
+    "gst_included": false,
+    "dcr_certified": true,
+    "notes": "TPDDL residential scheme historical rate (excl. GST)"
+  },
+  {
+    "size_kw": 3.0,
+    "price_low": 117000.0,
+    "price_high": 117000.0,
+    "source": "TPDDL_HIST",
+    "tier": "T1",
+    "as_of": "Historical",
+    "gst_included": false,
+    "dcr_certified": true,
+    "notes": "TPDDL residential scheme historical rate (excl. GST)"
+  }
+]
