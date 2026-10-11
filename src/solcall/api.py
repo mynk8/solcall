@@ -15,6 +15,7 @@ from solcall.domain.value_objects import RouteType
 from solcall.services.engine import SolarMathEngine, HouseholdEvaluation
 from solcall.services.feed_generator import FeedGeneratorService
 from solcall.services.reference_ladder import ReferenceLadderService
+from solcall.services.scraper_delivery import ScraperDeliveryService
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = BASE_DIR / "data"
@@ -30,8 +31,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Initialize Layer 3 math engine
+# Initialize Layer 3 math engine & delivery service
 engine = SolarMathEngine()
+delivery_service = ScraperDeliveryService(data_dir=DATA_DIR, out_dir=OUT_DIR)
 
 # Mount static web directory
 if STATIC_DIR.exists():
@@ -181,3 +183,27 @@ def trigger_feed_generation() -> dict:
     generator = FeedGeneratorService(engine=engine, out_dir=OUT_DIR, data_dir=DATA_DIR)
     generator.generate_all_feeds()
     return {"status": "success", "message": "All feeds regenerated in out/"}
+
+
+@app.get("/api/scrapers/summary")
+def get_scrapers_summary_endpoint() -> dict:
+    """Return consolidated scraper metrics: ticker values, DISCOM counts, and surcharge history."""
+    return delivery_service.get_summary(fitted_m=engine.tariff.fitted_multiplier)
+
+
+@app.get("/api/scrapers/reference-table")
+def get_reference_table_endpoint() -> list:
+    """Return unpooled reference ladder formatted specifically for UI table rendering."""
+    return delivery_service.get_reference_table_rows()
+
+
+@app.get("/api/scrapers/discoms")
+def get_discom_stats_endpoint() -> list:
+    """Return division-level application metrics grouped by DISCOM."""
+    return delivery_service.get_discom_stats()
+
+
+@app.get("/api/scrapers/surcharges")
+def get_surcharges_endpoint() -> list:
+    """Return BRPL surcharge historical timeline."""
+    return delivery_service.get_surcharge_history()
