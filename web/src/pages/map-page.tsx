@@ -1,41 +1,78 @@
 import { useEffect, useMemo, useState } from "react"
-import { ChevronsUpDown, Eye, EyeOff, Layers, RotateCcw, X } from "lucide-react"
+import { ChevronsUpDown, Eye, EyeOff, Layers, RotateCcw, Sun, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { VerdictPill } from "@/components/bits"
 import { AppsScale, DivisionDots, appsColor } from "@/components/division-dots"
 import { BarList, CostSplit, PaybackCurve } from "@/components/proof"
 import { Button } from "@/components/ui/button"
-import { Map as MapView, MapControls, MapMarker, MarkerContent, MarkerTooltip, useMap } from "@/components/ui/map"
+import { Map as MapView, MapControls, MapGeoJSON, MapMarker, MarkerContent, MarkerTooltip, useMap } from "@/components/ui/map"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api, type Answer } from "@/lib/api"
 import { useApp } from "@/lib/app-context"
 import { lakh } from "@/lib/format"
+import { FEASIBLE_SOLAR_REGIONS, type FeasibleSolarRegion } from "@/lib/regions"
 import { DISCOM_CENTRES, SAMPLE_ROOFS, divisionName, shadeLabel, type Discom, type RoofCandidate } from "@/lib/roofs"
 import { useIsMobile } from "@/lib/use-mobile"
 import { cn } from "@/lib/utils"
 
 const DELHI: [number, number] = [77.12, 28.68]
 
-type Sheet = { kind: "roof" } | { kind: "discom"; id: Discom; division?: string } | null
+type Sheet = { kind: "roof" } | { kind: "discom"; id: Discom; division?: string } | { kind: "region"; region: FeasibleSolarRegion } | null
 
 export function MapPage() {
   const { household, navigate, update, scope, setScope } = useApp()
   const [showRoofs, setShowRoofs] = useState(true)
   const [showApps, setShowApps] = useState(true)
   const [mode, setMode] = useState<"division" | "discom">("division")
+  const [showRegions, setShowRegions] = useState(false)
+  const [regionId, setRegionId] = useState("delhi-ncr")
   const [sheet, setSheet] = useState<Sheet>(household.roof ? { kind: "roof" } : null)
   const roof = useMemo(() => SAMPLE_ROOFS.find((r) => r.id === household.roof) ?? null, [household.roof])
   const roofs = SAMPLE_ROOFS.filter((r) => scope === "Everywhere" || r.discom === scope)
 
   const pick = (r: RoofCandidate) => { update({ roof: r.id, disco: r.discom }); setSheet({ kind: "roof" }) }
+  const pickRegion = (r: FeasibleSolarRegion) => { setRegionId(r.id); setSheet({ kind: "region", region: r }) }
+
+  const regionsGeoJson = useMemo(() => ({
+    type: "FeatureCollection" as const,
+    features: FEASIBLE_SOLAR_REGIONS.map((r) => ({
+      type: "Feature" as const,
+      id: r.id,
+      properties: { id: r.id, selected: r.id === regionId },
+      geometry: { type: "Polygon" as const, coordinates: [r.boundaryPolygon] },
+    })),
+  }), [regionId])
 
   return (
     <div className="relative h-full">
       <MapView center={DELHI} zoom={10.2} theme="light" className="absolute inset-0">
         <MapControls position="bottom-right" showZoom showLocate />
-        <FlyTo roof={sheet?.kind === "roof" ? roof : null} />
+        <FlyTo roof={sheet?.kind === "roof" ? roof : null} region={sheet?.kind === "region" ? sheet.region : null} />
+        {showRegions && (
+          <>
+            <MapGeoJSON id="feasible-regions" data={regionsGeoJson} interactive
+              fillPaint={{ "fill-color": ["case", ["get", "selected"], "#f59e0b", "#10b981"], "fill-opacity": ["case", ["get", "selected"], 0.35, 0.18] }}
+              linePaint={{ "line-color": ["case", ["get", "selected"], "#d97706", "#059669"], "line-width": ["case", ["get", "selected"], 2.5, 1.5], "line-dasharray": [2, 1] }}
+              onClick={(e) => {
+                const found = FEASIBLE_SOLAR_REGIONS.find((r) => r.id === e.feature?.properties?.id)
+                if (found) pickRegion(found)
+              }} />
+            {FEASIBLE_SOLAR_REGIONS.map((r) => (
+              <MapMarker key={r.id} longitude={r.center[0]} latitude={r.center[1]} onClick={() => pickRegion(r)}>
+                <MarkerContent>
+                  <button aria-label={`Solar region ${r.name}`}
+                    className={cn("flex items-center gap-1 rounded-full border-2 px-2.5 py-1 text-xs font-semibold shadow-md hover:scale-110",
+                      r.id === regionId ? "border-amber-500 bg-amber-500 text-white" : "border-emerald-600 bg-white text-emerald-950")}>
+                    <Sun className="size-3 fill-amber-400 text-amber-400" />{r.name}
+                  </button>
+                </MarkerContent>
+                <MarkerTooltip>{r.name} ({r.state}) · {r.specificYieldKwhPerKwp} kWh/kWp/yr</MarkerTooltip>
+              </MapMarker>
+            ))}
+          </>
+        )}
         {showApps && mode === "division" && (
           <DivisionDots selected={sheet?.kind === "discom" ? sheet.division : null}
             onPick={(d) => setSheet({ kind: "discom", id: d.discom as Discom, division: d.division })} />
@@ -56,8 +93,10 @@ export function MapPage() {
       </MapView>
 
       <LayerPanel showRoofs={showRoofs} setShowRoofs={setShowRoofs} showApps={showApps} setShowApps={setShowApps} mode={mode} setMode={setMode}
-        onReset={scope !== "Everywhere" || !showRoofs || !showApps || mode !== "division" || sheet
-          ? () => { setScope("Everywhere"); setShowRoofs(true); setShowApps(true); setMode("division"); setSheet(null); update({ roof: null }) }
+        showRegions={showRegions} setShowRegions={setShowRegions} regionId={regionId}
+        onPickRegion={(id) => { const r = FEASIBLE_SOLAR_REGIONS.find((x) => x.id === id); if (r) pickRegion(r) }}
+        onReset={scope !== "Everywhere" || !showRoofs || !showApps || mode !== "division" || showRegions || sheet
+          ? () => { setScope("Everywhere"); setShowRoofs(true); setShowApps(true); setMode("division"); setShowRegions(false); setSheet(null); update({ roof: null }) }
           : undefined} />
 
       <RoofSheet roof={sheet?.kind === "roof" ? roof : null} onClose={() => setSheet(null)}
@@ -68,6 +107,9 @@ export function MapPage() {
         }} />
       <DiscomSheet id={sheet?.kind === "discom" ? sheet.id : null} division={sheet?.kind === "discom" ? sheet.division : undefined} onClose={() => setSheet(null)}
         onShowRoofs={(d) => { setScope(d); setShowRoofs(true); setSheet(null) }} onAlerts={() => navigate("alerts")} />
+      <RegionCard region={sheet?.kind === "region" ? sheet.region : null} onClose={() => setSheet(null)}
+        onDelhiRoofs={() => { setScope("Everywhere"); setShowRoofs(true); setSheet(null) }}
+        onCheck={() => { setSheet(null); navigate("check", { size: 3, load: 3 }) }} />
     </div>
   )
 }
@@ -84,9 +126,10 @@ const FIT_COLOR: Record<RoofCandidate["shade"], string> = { none: "#00703c", lig
  * Map controls in one panel (after GridStatus): area, then each layer as a section with a
  * visibility toggle, its colour scale and its display options.
  */
-function LayerPanel({ showRoofs, setShowRoofs, showApps, setShowApps, mode, setMode, onReset }: {
+function LayerPanel({ showRoofs, setShowRoofs, showApps, setShowApps, mode, setMode, showRegions, setShowRegions, regionId, onPickRegion, onReset }: {
   showRoofs: boolean; setShowRoofs: (v: boolean) => void; showApps: boolean; setShowApps: (v: boolean) => void
   mode: "division" | "discom"; setMode: (m: "division" | "discom") => void
+  showRegions: boolean; setShowRegions: (v: boolean) => void; regionId: string; onPickRegion: (id: string) => void
   onReset?: () => void // set only when something differs from the default view
 }) {
   const { scope, setScope } = useApp()
@@ -127,6 +170,15 @@ function LayerPanel({ showRoofs, setShowRoofs, showApps, setShowApps, mode, setM
               {FIT_STEPS.map((s) => <div key={s.label} className="h-3.5" style={{ background: s.color }} />)}
               {FIT_STEPS.map((s) => <span key={s.label} className="pt-1 text-center text-xs">{s.label}</span>)}
             </div>
+          </LayerRow>
+          <LayerRow title="Solar regions (India)" on={showRegions} setOn={setShowRegions}>
+            <span className="text-sm">High-irradiance zones, &gt;1,450 kWh/kWp/yr</span>
+            <Select value={regionId} onValueChange={onPickRegion}>
+              <SelectTrigger className="h-8 w-full text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {FEASIBLE_SOLAR_REGIONS.map((r) => <SelectItem key={r.id} value={r.id}>{r.name} ({r.state}) · {r.specificYieldKwhPerKwp}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </LayerRow>
         </div>
       )}
@@ -186,18 +238,18 @@ function DiscomCircles({ onPick }: { onPick: (d: Discom) => void }) {
   )
 }
 
-function FlyTo({ roof }: { roof: RoofCandidate | null }) {
+function FlyTo({ roof, region }: { roof: RoofCandidate | null; region?: FeasibleSolarRegion | null }) {
   const { map, isLoaded } = useMap()
   useEffect(() => {
-    if (!map || !isLoaded || !roof) return
+    if (!map || !isLoaded || (!roof && !region)) return
     const desktop = window.matchMedia("(min-width: 768px)").matches
     map.easeTo({
-      center: [roof.longitude, roof.latitude],
-      zoom: Math.max(map.getZoom(), 11),
+      center: roof ? [roof.longitude, roof.latitude] : region!.center,
+      zoom: roof ? Math.max(map.getZoom(), 11) : region!.zoom,
       padding: desktop ? { right: 400, left: 0, top: 0, bottom: 0 } : { bottom: 380, top: 0, left: 0, right: 0 },
-      duration: 700,
+      duration: roof ? 700 : 900,
     })
-  }, [map, isLoaded, roof])
+  }, [map, isLoaded, roof, region])
   return null
 }
 
@@ -350,6 +402,50 @@ function DiscomSheet({ id, division, onClose, onShowRoofs, onAlerts }: {
             }))} labelWidth="7.5rem" />
             <span className="text-sm text-muted-foreground">Source: Delhi Solar Portal · dot positions approximate</span>
           </section>
+        </>
+      )}
+    </FloatingCard>
+  )
+}
+
+// ---------------------------------------------------------------- feasible region card
+
+const DELHI_YIELD = 1466 // kWh/kWp/yr, the Delhi baseline the engine is fitted to
+
+function RegionCard({ region, onClose, onDelhiRoofs, onCheck }: {
+  region: FeasibleSolarRegion | null; onClose: () => void; onDelhiRoofs: () => void; onCheck: () => void
+}) {
+  return (
+    <FloatingCard open={!!region} onClose={onClose} footer={region && (
+      region.id === "delhi-ncr"
+        ? <Button className="flex-1" onClick={onDelhiRoofs}>Show Delhi roofs</Button>
+        : <Button className="flex-1" onClick={onCheck}>Check a 3 kW system</Button>
+    )}>
+      {region && (
+        <>
+          <div className="flex flex-col pr-8">
+            <span className="text-sm text-muted-foreground">{region.zone} India · {region.state} · {region.tier.replace("_", " ").toLowerCase()} fit</span>
+            <h2 className="flex items-center gap-1.5 text-xl font-bold"><Sun className="size-5 shrink-0 fill-amber-500 text-amber-500" />{region.name}</h2>
+            <p className="pt-1 text-sm text-muted-foreground">{region.description}</p>
+          </div>
+          <section className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col rounded-md border p-3">
+              <span className="text-sm text-muted-foreground">Specific yield</span>
+              <span className="text-2xl font-bold tabular-nums">{region.specificYieldKwhPerKwp.toLocaleString("en-IN")}</span>
+              <span className="text-xs text-muted-foreground">kWh / kWp / year</span>
+            </div>
+            <div className="flex flex-col rounded-md border p-3">
+              <span className="text-sm text-muted-foreground">Daily sunlight (GHI)</span>
+              <span className="text-2xl font-bold tabular-nums">{region.ghiKwhPerM2Day}</span>
+              <span className="text-xs text-muted-foreground">kWh / m² / day</span>
+            </div>
+          </section>
+          <BarList rows={[
+            { label: "Delhi", value: DELHI_YIELD, display: DELHI_YIELD.toLocaleString("en-IN"), color: "#b1b4b6" },
+            { label: region.name, value: region.specificYieldKwhPerKwp, display: region.specificYieldKwhPerKwp.toLocaleString("en-IN"), color: "#f59e0b" },
+          ]} labelWidth="7.5rem" />
+          <span className="-mt-2 text-sm text-muted-foreground">{(region.specificYieldKwhPerKwp / DELHI_YIELD).toFixed(2)}× Delhi's output per kW installed</span>
+          <p className="text-sm"><span className="font-semibold">Why here: </span>{region.keyFeatures}</p>
         </>
       )}
     </FloatingCard>
